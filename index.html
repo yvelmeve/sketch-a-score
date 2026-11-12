@@ -44,6 +44,8 @@ body{font-family:var(--font-ui)}
 .mark h1{margin:0;font-weight:400;font-size:13px;letter-spacing:.1em;text-transform:lowercase}
 .mark p{margin:0;font-size:12px;line-height:1.5;font-weight:300;color:var(--char-soft)}
 .mark p+p{font-style:italic}
+#tapstart{position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);z-index:3;text-align:center;pointer-events:none;font-size:14px;font-weight:300;letter-spacing:.12em;color:var(--char-soft);animation:tapIn 1.5s ease both}
+@keyframes tapIn{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
 #scalemenu{position:relative;display:flex;align-items:baseline;gap:6px;pointer-events:auto;font-size:12px;font-weight:300;animation:menuIn .5s ease both}
 #scalemenu[hidden]{display:none}
 @keyframes menuIn{from{opacity:0}to{opacity:1}}
@@ -1038,6 +1040,11 @@ const hints = {
   star: ''
 };
 const hintFor = () => hints[tool];
+(function(){                                      // touch screens: a quick prompt in the middle of the page
+  if (!(window.matchMedia && matchMedia('(pointer:coarse)').matches)) return;
+  const t = document.createElement('p'); t.id = 'tapstart'; t.textContent = 'tap to start'; t.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(t); setTimeout(() => t.remove(), 1500);
+})();
 let hintGone = false;
 function applyScale(def){
   scaleDef = def; SCALE = def.notes; NL = SCALE.length; NOTES = NL * 3 + 1;
