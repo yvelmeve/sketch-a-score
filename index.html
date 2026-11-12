@@ -164,7 +164,7 @@ body{font-family:var(--font-ui)}
 .bkbtns button svg{display:block}
 #bkbtn[hidden]{display:none}
 #bkbtn svg{display:block}
-@media (max-width:520px){.bar{gap:2px 12px;padding:6px 12px}.bar .sep{display:none}}
+@media (max-width:520px){.mark{right:64px}#hint{white-space:pre-line}.bar{gap:2px 12px;padding:6px 12px}.bar .sep{display:none}}
 .corner{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:0;
   font-size:12.5px;line-height:1;letter-spacing:.03em}
 .corner[hidden]{display:none}
@@ -210,7 +210,8 @@ body{font-family:var(--font-ui)}
 
 <header class="mark">
   <h1>sketch-a-score</h1>
-  <p id="hint">tap for a dot. hold for a circle. drag for a line.</p>
+  <p id="hint">tap for a dot. hold for a circle.
+drag for a line.</p>
   <div id="scalemenu" role="group" aria-label="Scale" hidden></div>
 </header>
 
@@ -1034,7 +1035,7 @@ const HOLD_MS = 200, MOVE_PX = 7;
 let tool = 'draw', ptr = null;
 const R_MAX = () => Math.min(W, H) * 0.48;
 const hints = {
-  draw: 'tap for a dot. hold for a circle. drag for a line.',
+  draw: 'tap for a dot. hold for a circle.\ndrag for a line.',
   rake: '',
   flower: '',
   star: ''
