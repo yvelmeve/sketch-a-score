@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sketch-a-score</title>
+<meta name="description" content="draw simple charcoal sketches and hear them as ambient music. a reverse music visualizer.">
+<meta name="theme-color" content="#eeebe3">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:title" content="sketch-a-score">
+<meta property="og:description" content="draw simple charcoal sketches and hear them as ambient music.">
+<!-- after you deploy, replace YOUR-DOMAIN below with your real address so link previews show the image -->
+<meta property="og:image" content="https://YOUR-DOMAIN/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;1,300&amp;display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: one full-bleed sheet of paper; title top-left, tool strip bottom-centre. Single light world by choice. */
+  --paper:#eeebe3;
+  --char:#2f2f34;
+  --char-soft:rgba(47,47,52,.58);
+  --char-faint:rgba(47,47,52,.26);
+  --font-ui:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--paper);color:var(--char);overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font-ui)}
+#stage{position:fixed;inset:0;touch-action:none;
+  cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Ccircle cx='11' cy='11' r='7' fill='none' stroke='%232f2f34' stroke-width='1.3'/%3E%3Ccircle cx='11' cy='11' r='1.2' fill='%232f2f34'/%3E%3C/svg%3E") 11 11,crosshair}
+#stage canvas{position:absolute;inset:0;display:block}
+#o{pointer-events:none}
+.mark{position:fixed;top:16px;left:16px;right:16px;pointer-events:none;display:flex;flex-direction:column;gap:6px;max-width:44ch}
+.mark h1{margin:0;font-weight:400;font-size:13px;letter-spacing:.1em;text-transform:lowercase}
+.mark p{margin:0;font-size:12px;line-height:1.5;font-weight:300;color:var(--char-soft)}
+.mark p+p{font-style:italic}
+.bar{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 16px;
+  width:max-content;max-width:calc(100% - 32px);padding:8px 16px;
+  background:rgba(238,235,227,.92);border:0;border-radius:3px;
+  font-size:12.5px;line-height:1;letter-spacing:.03em}
+.bar .grp{display:flex;gap:14px}
+.bar .sep{width:1px;height:14px;background:var(--char-faint)}
+.bar button{background:none;border:0;margin:0;padding:8px 2px;font:inherit;letter-spacing:inherit;color:var(--char);cursor:pointer;
+  text-underline-offset:5px;text-decoration-thickness:1px}
+.bar button:hover{text-decoration:underline}
+#undo svg,#redo svg{display:block}
+#redo{margin-left:-10px}
+#undo:hover,#redo:hover{text-decoration:none}
+#undo:disabled,#redo:disabled{color:var(--char-faint);cursor:default}
+.bar button.tool[aria-pressed="true"]{position:relative;text-decoration:none}
+.bar button.tool[aria-pressed="true"]::after{content:"";position:absolute;left:2px;right:2px;bottom:0;height:7px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10' preserveAspectRatio='none'%3E%3Cpath d='M1 5.3 C3.5 2.6 6.5 2.8 9 5 S14.5 7.6 17.5 5.2 S23 2.4 26 4.8 S31.5 7.4 35 5.4 S40.5 2.8 44 4.6 S49.5 7.2 52.5 5.4 S57 3.6 59 5' fill='none' stroke='%232f2f34' stroke-width='1.4' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") 0 0/100% 100% no-repeat;animation:wl .55s steps(1,end) infinite;pointer-events:none}
+@keyframes wl{0%{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10' preserveAspectRatio='none'%3E%3Cpath d='M1 5.3 C3.5 2.6 6.5 2.8 9 5 S14.5 7.6 17.5 5.2 S23 2.4 26 4.8 S31.5 7.4 35 5.4 S40.5 2.8 44 4.6 S49.5 7.2 52.5 5.4 S57 3.6 59 5' fill='none' stroke='%232f2f34' stroke-width='1.4' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}50%{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10' preserveAspectRatio='none'%3E%3Cpath d='M1 4.8 C3.5 7.4 6.5 7.2 9 4.8 S14.5 2.6 17.5 5 S23 7.5 26 5.4 S31.5 2.7 35 4.7 S40.5 7.2 44 5.5 S49.5 2.9 52.5 4.8 S57 6.5 59 5.2' fill='none' stroke='%232f2f34' stroke-width='1.4' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")}}
+@media (prefers-reduced-motion:reduce){.bar button.tool[aria-pressed="true"]::after{animation:none}}
+.bar button.tog[aria-pressed="false"]{color:var(--char-soft);text-decoration:line-through}
+.bar button:focus-visible{outline:1px dashed var(--char);outline-offset:3px}
+#menu{position:fixed;display:flex;flex-direction:column;align-items:flex-end;gap:0;
+  width:max-content;max-width:min(260px,calc(100% - 32px));padding:0 8px 2px;background:rgba(238,235,227,.96);
+  border:0;border-radius:3px;font-size:12.5px;letter-spacing:.03em}
+#menu[hidden]{display:none}
+#menu button{background:none;border:0;margin:0;padding:4px 0;font:inherit;letter-spacing:inherit;color:var(--char-soft);cursor:pointer;
+  text-align:right;text-underline-offset:5px;text-decoration-thickness:1px}
+#menu button:hover:not(:disabled){text-decoration:underline}
+#menu button:disabled{color:var(--char-faint);cursor:default}
+#menu button:focus-visible{outline:1px dashed var(--char);outline-offset:3px}
+#menu .pbar{display:block;width:100%;height:2px;margin:-1px 0 5px;background:rgba(47,47,52,.14);border-radius:2px;overflow:hidden}
+#menu .pbar[hidden]{display:none}
+#menu .pbar i{display:block;height:100%;width:0;background:var(--char);border-radius:2px;transition:width .25s ease-out}
+#menu i{font-style:normal;font-weight:300;color:var(--char-soft)}
+#menu p{margin:0;min-height:0;text-align:right;font-size:12px;line-height:1.5;font-weight:300;color:var(--char-soft)}
+#pv{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(238,235,227,.88);padding:16px}
+#pv[hidden]{display:none}
+.pvbox{position:relative;margin-left:18px;width:min(560px,calc(100% - 18px));max-height:100%;display:flex;flex-direction:column;gap:12px;padding:16px 18px 12px 30px;background:rgba(47,47,52,.05);box-shadow:0 2px 10px rgba(47,47,52,.12);border-radius:3px;font-size:12.5px;letter-spacing:.03em;color:var(--char)}
+#pv .pvspine{position:absolute;left:-17px;top:6px;bottom:6px;width:34px;overflow:hidden;pointer-events:none;color:rgba(47,47,52,.5)}
+#pv .pvspine svg{display:block}
+#pv .pvspine .hd .f1,#pv .pvspine .hd .f2{transform:none}
+.pvmedia{display:flex;align-items:center;justify-content:center;min-height:120px;overflow:hidden;color:var(--char-soft);font-weight:300}
+.pvmedia img,.pvmedia video{display:block;max-width:100%;max-height:52vh}
+.pvname{position:relative;display:flex;align-items:baseline;gap:2px;padding:6px 2px 12px}
+.pvname .uline{position:absolute;left:0;right:0;bottom:2px;width:100%;height:8px;color:rgba(47,47,52,.42);overflow:visible}
+.pvname:focus-within .uline{color:rgba(47,47,52,.62)}
+.pvname .uline .f1,.pvname .uline .f2{transform:none}
+.pvname input{flex:1;min-width:0;background:none;border:0;outline:0;margin:0;padding:0;font:inherit;letter-spacing:inherit;color:var(--char);-webkit-user-select:text;user-select:text}
+#pvext{color:var(--char-soft)}
+#pv .pvrow{display:flex;align-items:center;justify-content:space-between;gap:16px}
+#pvinfo{margin:0;font-size:12px;font-weight:300;color:var(--char-soft)}
+.pvbtns{display:flex;justify-content:flex-end;gap:20px}
+.pvbtns button{background:none;border:0;margin:0;padding:6px 0;font:inherit;letter-spacing:inherit;color:var(--char-soft);cursor:pointer;text-underline-offset:5px;text-decoration-thickness:1px}
+.pvbtns button:hover{text-decoration:underline}
+.pvbtns button:focus-visible{outline:1px dashed var(--char);outline-offset:3px}
+#pvsave{color:var(--char)}
+.pvmedia{position:relative}
+.pvmedia video{cursor:pointer}
+.pvplay{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:none;border:0;margin:0;padding:10px;color:var(--char);cursor:pointer}
+.pvmedia .pvplay .f1,.pvmedia .pvplay .f2{transform:none}
+.pvplay svg{display:block}
+@media (max-width:520px){.bar{gap:2px 12px;padding:6px 12px}.bar .sep{display:none}}
+.corner{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:0;
+  font-size:12.5px;line-height:1;letter-spacing:.03em}
+.corner[hidden]{display:none}
+.corner button{background:none;border:0;margin:0;padding:6px 0;font:inherit;letter-spacing:inherit;color:var(--char);cursor:pointer;
+  display:flex;align-items:center;gap:8px;text-underline-offset:5px;text-decoration-thickness:1px}
+.corner button:focus-visible{outline:1px dashed var(--char);outline-offset:3px}
+#rec svg{display:block;width:22px;height:22px}
+#snd svg,#gridbtn svg,#save svg{display:block}
+.corner .row{display:flex;flex-direction:column;align-items:flex-end;gap:0}
+.hd .dot{display:none}
+#gridbtn[aria-pressed="true"] .dot{display:inline}
+#dl{display:flex;flex-direction:column;align-items:flex-end}
+#dl[hidden]{display:none}
+#grid{position:fixed;inset:0;pointer-events:none;
+  background-image:linear-gradient(to right,rgba(47,47,52,.1) 1px,transparent 1px),linear-gradient(to bottom,rgba(47,47,52,.1) 1px,transparent 1px);
+  background-size:32px 32px}
+#rec .inner{fill:none}
+#rec[aria-pressed="true"] .inner{fill:currentColor;animation:recpulse 1.6s ease-in-out infinite}
+@keyframes recpulse{50%{opacity:.3}}
+.hd .x{display:none}
+.hd .mut{display:none}
+#snd[aria-pressed="false"] .mut{display:inline}
+#snd[aria-pressed="false"] .on{display:none}
+.hd .f1{animation:hdA .55s steps(1,end) infinite;transform:translate(-.15px,.12px) rotate(-.5deg);transform-origin:11px 11px}
+.hd .f2{animation:hdB .55s steps(1,end) infinite;transform:translate(.2px,-.15px) rotate(.7deg);transform-origin:11px 11px}
+@keyframes hdA{0%{visibility:visible}50%{visibility:hidden}}
+@keyframes hdB{0%{visibility:hidden}50%{visibility:visible}}
+@media (prefers-reduced-motion:reduce){.hd .f1{animation:none}.hd .f2{display:none}}
+@media (prefers-reduced-motion:reduce){#rec[aria-pressed="true"] .inner{animation:none}}
+#rtime{font-weight:300;color:var(--char-soft);font-variant-numeric:tabular-nums}
+#rnote{margin:4px 0 0;max-width:230px;font-size:12px;line-height:1.5;font-weight:300;color:var(--char-soft);text-align:right}
+#rnote:empty{display:none}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="c" aria-label="Drawing surface"></canvas>
+  <canvas id="o" aria-hidden="true"></canvas>
+</div>
+<div id="grid" hidden aria-hidden="true"></div>
+
+<header class="mark">
+  <h1>sketch-a-score</h1>
+  <p id="hint">tap for a dot. hold for a circle. drag for a line.</p>
+</header>
+
+<nav class="bar" aria-label="Tools">
+  <div class="grp">
+    <button class="tool" id="t-draw" data-tool="draw" aria-pressed="true" title="Draw (D)">draw</button>
+    <button class="tool" id="t-rake" data-tool="rake" aria-pressed="false" title="Rake (R)">rake</button>
+    <button class="tool" id="t-flower" data-tool="flower" aria-pressed="false" title="Flower (F)">flower</button>
+    <button class="tool" id="t-star" data-tool="star" aria-pressed="false" title="Star (S)">star</button>
+  </div>
+  <span class="sep"></span>
+  <button id="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M4.3 20.5 C9 21.2 14.6 20.9 17.6 17.6 C20.2 15.6 20.2 10.6 17.4 8.6 C15.8 6.9 11 6.4 6.1 6.6 L2.9 6.8"/><path d="M11.3 1.3 L2.9 6.8 L11.1 11.1"/></g></g><g class="f2"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M4.5 20.3 C9.2 21 14.4 21.1 17.5 17.8 C20.3 15.4 20.3 10.4 17.3 8.4 C15.6 6.6 11.1 6.6 6.2 6.4 L3.1 6.9"/><path d="M11.5 1.5 L3.1 6.9 L11 10.9"/></g></g></svg></button>
+  <button id="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M17.7 20.5 C13 21.2 7.4 20.9 4.4 17.6 C1.8 15.6 1.8 10.6 4.6 8.6 C6.2 6.9 11 6.4 15.9 6.6 L19.1 6.8"/><path d="M10.7 1.3 L19.1 6.8 L10.9 11.1"/></g></g><g class="f2"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M17.5 20.3 C12.8 21 7.6 21.1 4.5 17.8 C1.7 15.4 1.7 10.4 4.7 8.4 C6.4 6.6 10.9 6.6 15.8 6.4 L18.9 6.9"/><path d="M10.5 1.5 L18.9 6.9 L11 10.9"/></g></g></svg></button>
+  <button id="clear" title="Clear the page">clear</button>
+  <span class="sep"></span>
+  <button class="tog" id="scan" aria-pressed="true" title="Sweep and play the page (Space)">scan</button>
+  
+</nav>
+
+<div class="corner" id="corner">
+  <div class="row">
+    <button class="tog" id="snd" aria-pressed="true" aria-label="Sound" title="Sound on or off"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g class="on"><path d="M2.6 8.1 L6.2 7.8 L10.4 3.8 L10.1 18.2 L6.1 14.2 L2.7 14.1 L2.5 8.3"/><path d="M13.2 7.6 Q15.5 11 13.1 14.6"/><path d="M15.9 4.7 Q20 11.1 16 17.4"/></g><g class="mut"><path d="M2.6 8.1 L3.1 8.1 L3.5 8.0 L4.0 8.0 L4.4 7.9 L4.8 7.9 L5.3 7.9 L5.8 7.8 L6.2 7.8 L6.5 7.5 L6.9 7.1 L7.2 6.8 L7.6 6.5 L8.0 6.1 L8.3 5.8 L8.7 5.5 L9.0 5.1 L9.4 4.8 L9.7 4.5 L10.1 4.1 L10.4 3.8 L10.4 4.2 L10.4 4.7 L10.4 5.1 L10.4 5.6 L10.4 6.0 L10.3 6.5 L10.3 6.9 L10.3 7.4 L10.3 7.8 L10.3 8.3 L10.3 8.8"/><path d="M10.2 15.0 L10.2 15.5 L10.1 15.9 L10.1 16.4 L10.1 16.8 L10.1 17.3 L10.1 17.8 L10.1 18.2 L9.8 17.9 L9.4 17.5 L9.1 17.2 L8.8 16.9 L8.4 16.5"/><path d="M4.6 14.2 L4.2 14.1 L3.7 14.1 L3.2 14.1 L2.7 14.1 L2.7 13.6 L2.7 13.1 L2.7 12.7 L2.6 12.2 L2.6 11.7 L2.6 11.2 L2.6 10.7 L2.6 10.2 L2.5 9.8 L2.5 9.3 L2.5 8.8 L2.5 8.3"/><path d="M14.3 10.9 L14.3 11.1 L14.3 11.2 L14.3 11.4 L14.3 11.6 L14.3 11.8 L14.2 11.9 L14.2 12.1 L14.2 12.3 L14.1 12.5 L14.1 12.6 L14.0 12.8 L13.9 13.0 L13.9 13.2 L13.8 13.3 L13.7 13.5 L13.6 13.7 L13.5 13.9 L13.4 14.1 L13.3 14.2 L13.2 14.4 L13.1 14.6"/><path d="M17.4 7.9 L17.5 8.2 L17.6 8.5 L17.7 8.8 L17.8 9.2 L17.8 9.5 L17.9 9.8 L17.9 10.1 L17.9 10.4 L18.0 10.8 L18.0 11.1 L18.0 11.4 L18.0 11.7 L17.9 12.0 L17.9 12.3 L17.9 12.7 L17.8 13.0 L17.7 13.3 L17.7 13.6 L17.6 13.9 L17.5 14.2 L17.4 14.6 L17.3 14.9 L17.2 15.2 L17.0 15.5 L16.9 15.8 L16.7 16.1 L16.6 16.5 L16.4 16.8 L16.2 17.1 L16.0 17.4"/><path d="M2.4 19.2 L19.6 2.9"/></g></g><g class="f2"><g class="on"><path d="M2.9 7.9 L6.5 8.2 L10.1 3.6 L10.4 18 L6.4 14.5 L2.5 14.3 L2.8 7.8"/><path d="M13.5 7.8 Q15.8 11.2 13.4 14.4"/><path d="M16.2 4.9 Q20.3 10.9 15.8 17.2"/></g><g class="mut"><path d="M2.9 7.9 L3.4 7.9 L3.8 8.0 L4.2 8.0 L4.7 8.1 L5.2 8.1 L5.6 8.1 L6.0 8.2 L6.5 8.2 L6.8 7.8 L7.1 7.4 L7.4 7.0 L7.7 6.7 L8.0 6.3 L8.3 5.9 L8.6 5.5 L8.9 5.1 L9.2 4.8 L9.5 4.4 L9.8 4.0 L10.1 3.6 L10.1 4.0 L10.1 4.5 L10.1 5.0 L10.1 5.4 L10.1 5.8 L10.2 6.3 L10.2 6.8 L10.2 7.2 L10.2 7.7 L10.2 8.1 L10.2 8.6 L10.2 9.0"/><path d="M10.3 14.8 L10.3 15.3 L10.4 15.8 L10.4 16.2 L10.4 16.7 L10.4 17.1 L10.4 17.6 L10.4 18.0 L10.0 17.7 L9.7 17.4 L9.3 17.0 L8.9 16.7 L8.6 16.4"/><path d="M4.5 14.4 L4.0 14.4 L3.5 14.4 L3.0 14.3 L2.5 14.3 L2.5 13.8 L2.5 13.4 L2.6 12.9 L2.6 12.4 L2.6 12.0 L2.6 11.5 L2.6 11.1 L2.7 10.6 L2.7 10.1 L2.7 9.7 L2.7 9.2 L2.8 8.7 L2.8 8.3 L2.8 7.8"/><path d="M14.6 11.0 L14.6 11.2 L14.6 11.3 L14.6 11.5 L14.6 11.6 L14.6 11.8 L14.5 12.0 L14.5 12.1 L14.5 12.3 L14.4 12.5 L14.4 12.6 L14.3 12.8 L14.2 12.9 L14.2 13.1 L14.1 13.3 L14.0 13.4 L13.9 13.6 L13.8 13.8 L13.7 13.9 L13.6 14.1 L13.5 14.2 L13.4 14.4"/><path d="M17.8 8.2 L17.9 8.5 L18.0 8.8 L18.0 9.1 L18.1 9.4 L18.1 9.7 L18.1 10.1 L18.1 10.4 L18.2 10.7 L18.1 11.0 L18.1 11.3 L18.1 11.6 L18.1 11.9 L18.0 12.2 L18.0 12.5 L17.9 12.8 L17.8 13.1 L17.7 13.4 L17.6 13.8 L17.5 14.1 L17.4 14.4 L17.3 14.7 L17.1 15.0 L17.0 15.3 L16.8 15.6 L16.6 15.9 L16.4 16.3 L16.2 16.6 L16.0 16.9 L15.8 17.2"/><path d="M2.8 18.8 L19.8 3.3"/></g></g></svg></button>
+    <button class="tog" id="gridbtn" aria-pressed="false" aria-label="Grid" title="Grid (G)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M7.3 3.5 L7.5 18.5"/><path d="M14.8 3.4 L14.6 18.6"/><path d="M3.4 7.4 L18.6 7.2"/><path d="M3.5 14.8 L18.5 15"/><path class="dot" fill="currentColor" stroke-width="0.8" d="M10.2 10.9 Q10.8 9.8 11.9 10.5 Q12.3 11.6 11.2 12.1 Q10.1 12 10.2 10.9Z"/></g><g class="f2"><path d="M7.1 3.3 L7.3 18.4"/><path d="M14.6 3.6 L14.9 18.5"/><path d="M3.6 7.2 L18.4 7.5"/><path d="M3.3 14.9 L18.6 14.7"/><path class="dot" fill="currentColor" stroke-width="0.8" d="M10.3 10.7 Q11 9.9 12 10.7 Q12.1 11.8 11 12.2 Q10 11.8 10.3 10.7Z"/></g></svg></button>
+  </div>
+  <div id="dl" hidden>
+    <button id="rec" type="button" aria-pressed="false" aria-label="Record the page" title="Record the page as you sketch"><span id="rtime"></span><svg class="hd" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M11.2 1.9 C16.4 1.6 20.5 5.6 20.2 11 C19.9 16.3 15.7 20.3 10.6 20 C5.5 19.7 1.9 15.6 2.1 10.8 C2.3 5.9 6.1 2.2 11.4 2.1 L12.6 2.3"/><path class="inner" d="M11 6.5 C13.7 6.3 15.8 8.4 15.6 11 C15.4 13.6 13.3 15.6 10.9 15.4 C8.3 15.2 6.5 13.2 6.6 10.9 C6.7 8.5 8.6 6.6 11.1 6.6"/></g><g class="f2"><path d="M10.8 2.2 C15.9 1.7 20.2 5.9 20 11.3 C19.8 16.6 15.4 20.5 10.3 19.8 C5.3 19.5 2.2 15.2 2.4 10.4 C2.7 5.6 6.4 2.4 11.1 1.8 L12.2 1.9"/><path class="inner" d="M11.3 6.6 C13.9 6.7 15.6 8.6 15.4 11.2 C15.2 13.7 13 15.4 10.6 15.2 C8.2 15 6.7 13 6.8 10.7 C6.9 8.4 8.8 6.4 11.2 6.4"/></g></svg></button>
+    <button id="save" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Save" title="Save a sketch, a gif or a video"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M11 3.4 L11.1 14.2"/><path d="M6.7 10.2 L11 14.6 L15.4 10"/><path d="M4.1 18.5 L17.9 18.3"/></g><g class="f2"><path d="M11.2 3.2 L10.9 14"/><path d="M6.5 10 L10.9 14.4 L15.5 10.3"/><path d="M4 18.3 L18 18.6"/></g></svg></button>
+    <p id="rnote" role="status"></p>
+  </div>
+</div>
+
+
+<div class="menu" id="menu" hidden aria-label="Save as">
+  <button type="button" data-save="png">sketch</button>
+  <button type="button" data-save="gif">gif</button><span class="pbar" hidden><i></i></span>
+  <button type="button" data-save="mp4">video</button><span class="pbar" hidden><i></i></span>
+  <p id="sstat" role="status"></p>
+</div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="ch1" x="-8%" y="-2%" width="116%" height="104%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.2" xChannelSelector="R" yChannelSelector="G" result="d"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.4 0 0 0 0.12" result="m"/><feComposite in="d" in2="m" operator="in"/></filter><filter id="ch2" x="-8%" y="-2%" width="116%" height="104%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="2" seed="11" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="1.2" xChannelSelector="R" yChannelSelector="G" result="d"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.4 0 0 0 0.12" result="m"/><feComposite in="d" in2="m" operator="in"/></filter></defs></svg>
+<div id="pv" hidden role="dialog" aria-modal="true" aria-label="Export preview">
+  <div class="pvbox">
+    <i class="pvspine" aria-hidden="true"></i><div class="pvmedia" id="pvmedia"></div>
+    <label class="pvname"><input id="pvname" type="text" spellcheck="false" autocomplete="off" maxlength="80" aria-label="File name"><span id="pvext"></span><svg class="hd uline" viewBox="0 0 300 8" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><g class="f1" filter="url(#ch1)"><path vector-effect="non-scaling-stroke" d="M2 4.6 C40 2.4 85 6.2 140 3.9 S235 5.6 298 3.4"/></g><g class="f2" filter="url(#ch2)"><path vector-effect="non-scaling-stroke" d="M2 3.8 C45 5.9 90 2.6 145 4.8 S240 3.1 298 4.9"/></g></svg></label>
+    <div class="pvrow"><p id="pvinfo"></p><div class="pvbtns"><button type="button" id="pvcancel">cancel</button><button type="button" id="pvsave">export</button></div></div>
+  </div>
+</div>
+<script>
+function buildSpine(){                           // the spine: one looping wire that dips through punched holes, drawn twice so it boils
+  const host = document.querySelector('.pvspine'); if (!host || !host.clientHeight) return;
+  const hostH = host.clientHeight, H = Math.ceil(hostH) + 10, cx = 17, loops = Math.ceil(H / 17) + 3, S = 28, TAU = Math.PI * 2;
+  const base = [];
+  for (let i = 0; i <= loops; i++) base.push({R: 11.5 + Math.random() * 2, R2: 7 + Math.random() * 2, p: 18 + Math.random() * 4});
+  let n = 0;
+  { let yy = -4; while (n < loops && yy + base[n].p / 2 <= hostH - 12){ yy += base[n].p; n++; } }
+  const frame = () => {
+    const jx = [], jy = [];
+    for (let i = 0; i <= loops; i++){ jx.push((Math.random() - 0.5) * 2.2); jy.push((Math.random() - 0.5) * 2.2); }
+    let d = '', holes = '', y0 = -4;
+    for (let i = 0; i < n; i++){
+      const a = base[i], b = base[i + 1], kEnd = i === n - 1 ? S / 2 + 4 : S;      // the line ends just after the last hole
+      for (let k = (i ? 1 : 0); k <= kEnd; k++){
+        const u = k / S, t = u * TAU, R = a.R + (b.R - a.R) * u, R2 = a.R2 + (b.R2 - a.R2) * u;
+        const x = cx - R * Math.cos(t) + jx[i] + (jx[i + 1] - jx[i]) * u;
+        const y = y0 + (a.p / TAU) * t - R2 * Math.sin(t) + jy[i] + (jy[i + 1] - jy[i]) * u;
+        d += (d ? ' L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+        if (k === S / 2) holes += '<ellipse cx="' + (x + 0.6).toFixed(1) + '" cy="' + y.toFixed(1) + '" rx="3" ry="4" transform="rotate(' + (-12 + jx[i] * 5).toFixed(0) + ' ' + x.toFixed(1) + ' ' + y.toFixed(1) + ')"/>';
+      }
+      y0 += a.p;
+    }
+    return '<g fill="currentColor" fill-opacity=".8" stroke="none">' + holes + '</g><path d="' + d + '"/>';
+  };
+  host.innerHTML = '<svg class="hd" width="34" height="' + H + '" viewBox="0 0 34 ' + H + '" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="f1" filter="url(#ch1)">' + frame() + '</g><g class="f2" filter="url(#ch2)">' + frame() + '</g></svg>';
+}
+
+(() => {
+'use strict';
+
+/* ---------- basics ---------- */
+const $ = id => document.getElementById(id);
+const cv = $('c'), ov = $('o'), stage = $('stage');
+const g = cv.getContext('2d'), og = ov.getContext('2d');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FPS = reduce ? 3 : 9;          // boil rate
+const VARIANTS = 4;                  // distinct wobble frames in the boil cycle
+const AMP = reduce ? 1 : 1.9;        // wobble amplitude in px
+const CH = 'rgb(54,54,59)';
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+let W = 0, H = 0, DPR = 1, dirty = true;
+
+function hash3(a, b, c){
+  let h = Math.imul(a|0, 374761393) ^ Math.imul(b|0, 668265263) ^ Math.imul(c|0, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function vnoise(seed, x, v){            // smooth 1-D noise in -1..1
+  const i = Math.floor(x), f = x - i, s = f * f * (3 - 2 * f);
+  const a = hash3(seed, i, v), b = hash3(seed, i + 1, v);
+  return (a + (b - a) * s) * 2 - 1;
+}
+
+/* ---------- paper tooth (erodes the ink) ---------- */
+let grainPat = null;
+function makeGrain(){
+  const S = 256, t = document.createElement('canvas'); t.width = t.height = S;
+  const tc = t.getContext('2d'), img = tc.createImageData(S, S);
+  const G = 16, grid = new Float32Array(G * G);
+  for (let i = 0; i < grid.length; i++) grid[i] = Math.random();
+  for (let y = 0; y < S; y++){
+    for (let x = 0; x < S; x++){
+      const fx = x / S * G, fy = y / S * G, ix = Math.floor(fx), iy = Math.floor(fy);
+      const tx = fx - ix, ty = fy - iy;
+      const a = grid[(iy % G) * G + (ix % G)], b = grid[(iy % G) * G + ((ix + 1) % G)];
+      const c = grid[((iy + 1) % G) * G + (ix % G)], d = grid[((iy + 1) % G) * G + ((ix + 1) % G)];
+      const blot = lerp(lerp(a, b, tx), lerp(c, d, tx), ty);
+      const r = Math.random();
+      const pit = r > 0.94 ? 0.85 : 0;
+      const base = Math.random() * 0.2 + blot * 0.18;
+      img.data[(y * S + x) * 4 + 3] = Math.max(pit, base) * 255;
+    }
+  }
+  tc.putImageData(img, 0, 0);
+  grainPat = g.createPattern(t, 'repeat');
+}
+
+/* ---------- strokes ---------- */
+let strokes = [], live = null, circleVer = 0, uidN = 0;
+
+function newStroke(type, seed = (Math.random() * 1e9) | 0){
+  const s = newStrokeBase(type, seed);
+  if (type === 'star'){                                  // 5-7 uneven points; q < 1 gives sharp tips
+    s.m = 5 + Math.floor(hash3(seed, 1, 2) * 3);
+    s.q = 0.48 + hash3(seed, 2, 3) * 0.2;
+  }
+  return s;
+}
+function newStrokeBase(type, seed){
+  return {
+    type, seed, uid: ++uidN, pts: [], r: 0, ang: 0, paths: null, events: null, ink: 0, cver: -1, sig: '',
+    m: 5 + Math.floor(hash3(seed, 1, 2) * 4),          // star points
+    q: 2.3 + hash3(seed, 2, 3) * 1.9,                  // star spikiness (superellipse exponent)
+    inner: 0.2 + hash3(seed, 3, 4) * 0.16,             // star valley depth
+    tines: 4 + Math.floor(hash3(seed, 4, 5) * 3),
+    gap: 8.5 + hash3(seed, 5, 6) * 3.5
+  };
+}
+
+function resample(poly, step){
+  const out = [{x: poly[0].x, y: poly[0].y}]; let carry = 0;
+  for (let i = 1; i < poly.length; i++){
+    const a = poly[i - 1], b = poly[i], d = Math.hypot(b.x - a.x, b.y - a.y);
+    if (!d) continue;
+    let pos = step - carry;
+    while (pos <= d){ const t = pos / d; out.push({x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t}); pos += step; }
+    carry = d - (pos - step);
+  }
+  const l = poly[poly.length - 1], o = out[out.length - 1];
+  if (Math.hypot(l.x - o.x, l.y - o.y) > 1) out.push({x: l.x, y: l.y});
+  return out;
+}
+
+function addPt(s, x, y){
+  const P = s.pts, l = P[P.length - 1], d = Math.hypot(x - l.x, y - l.y);
+  if (d < 4.5) return false;
+  const n = Math.ceil(d / 6);
+  for (let j = 1; j <= n; j++) P.push({x: l.x + (x - l.x) * j / n, y: l.y + (y - l.y) * j / n});
+  s.paths = null;
+  return true;
+}
+
+const CLOSED = {circle: 1, flower: 1, star: 1};
+const reach = o => o.type === 'circle' ? o.r * 1.05 : o.r * 1.3;
+function rawOutline(s){                                  // the closed outline of a circle, flower or star, before any merging
+  const key = s.r + '|' + s.ang + '|' + s.pts[0].x + '|' + s.pts[0].y;
+  if (s.raw && s.rawK === key) return s.raw;
+  const P = s.pts, c = P[0], pts = [];
+  if (s.type === 'circle'){
+    const r = Math.max(s.r, 3), N = Math.max(14, Math.ceil(Math.PI * 2 * r / 5));
+    const total = Math.floor(N * 1.13), a0 = hash3(s.seed, 7, 7) * 6.28;
+    for (let k = 0; k <= total; k++){
+      const th = a0 + k / N * Math.PI * 2;
+      const rad = r * (1 + 0.022 * vnoise(s.seed + 7, k * 0.12, 0) + 0.03 * (k / N));
+      pts.push({x: c.x + Math.cos(th) * rad, y: c.y + Math.sin(th) * rad});
+    }
+  } else if (s.type === 'star'){
+    // hand-drawn star: uneven sharp tips, broad concave sides that flare out of each tip
+    const R = Math.max(s.r, 4), m = s.m, TAU = Math.PI * 2, tips = [];
+    for (let k = 0; k < m; k++){
+      tips.push({a: s.ang + (k + (hash3(s.seed, k, 31) - 0.5) * 0.42) / m * TAU,
+                 r: R * (0.78 + hash3(s.seed, k, 32) * 0.4),
+                 v: R * (0.3 + hash3(s.seed, k, 33) * 0.18)});
+    }
+    const PER = 26;
+    for (let k = 0; k <= m; k++){
+      const A = tips[k % m], B = tips[(k + 1) % m];
+      const a0 = A.a, a1 = k + 1 === m ? tips[0].a + TAU : B.a;
+      const last = k === m;                                   // short overshoot past the first tip
+      for (let j = (k ? 1 : 0); j <= PER; j++){
+        let vv = j / PER; if (last) vv *= 0.12;
+        const u = 0.5 - 0.5 * Math.cos(Math.PI * (last ? vv / 0.12 : vv));
+        const uu = last ? u * 0.12 : u;
+        const th = lerp(a0, a1, uu), rt = lerp(A.r, B.r, uu);
+        let rad = rt - (rt - A.v) * Math.pow(Math.sin(Math.PI * uu), s.q);
+        rad *= 1 + 0.012 * vnoise(s.seed + 3, th * 1.5, 2) + (last ? 0.045 * (uu / 0.12) : 0);
+        const ph = th + 0.008 * vnoise(s.seed + 9, th * 2.3, 4);
+        pts.push({x: c.x + Math.cos(ph) * rad, y: c.y + Math.sin(ph) * rad});
+      }
+    }
+  } else {
+    const R = Math.max(s.r, 4), m = s.m, turns = 1.32, steps = Math.ceil(m * 28 * turns);
+    for (let k = 0; k <= steps; k++){
+      const u = k / steps * turns, th = u * Math.PI * 2;
+      const base = Math.pow(Math.abs(Math.cos(m * th / 2)), s.q);            // superellipse-style exponent
+      let rad = R * (s.inner + (1 - s.inner) * base);
+      rad *= 1 + 0.07 * vnoise(s.seed + 3, th * 1.7, 2) + 0.08 * (u - 0.5);  // messy: wobble + lap drift
+      const ph = th + s.ang + 0.05 * vnoise(s.seed + 9, th * 2.3, 4);
+      pts.push({x: c.x + Math.cos(ph) * rad, y: c.y + Math.sin(ph) * rad});
+    }
+  }
+  s.raw = pts; s.rawK = key; return pts;
+}
+function insideFn(o){
+  const c = o.pts[0];
+  if (o.type === 'circle'){ const rr = o.r * 1.01; return p => Math.hypot(p.x - c.x, p.y - c.y) < rr; }
+  const poly = rawOutline(o), rc = reach(o);
+  return p => {
+    if (Math.hypot(p.x - c.x, p.y - c.y) > rc) return false;
+    let inn = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++){
+      const a = poly[i], b = poly[j];
+      if ((a.y > p.y) !== (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inn = !inn;
+    }
+    return inn;
+  };
+}
+function neighbours(s){
+  const A = s.pts[0], out = [];
+  const t = o => { if (o !== s && CLOSED[o.type] && o.pts.length && Math.hypot(o.pts[0].x - A.x, o.pts[0].y - A.y) < reach(s) + reach(o)) out.push(o); };
+  strokes.forEach(t); if (live) t(live);
+  return out;
+}
+const nbSig = s => neighbours(s).map(o => o.uid + ':' + Math.round(o.r * 2) + ':' + o.pts[0].x + ':' + o.pts[0].y).join('|');
+function cutMerged(s, pts, w, amp){
+  const fs = [];
+  for (const o of neighbours(s)){                        // partial overlaps merge; full containment just nests
+    const ins = insideFn(o); let n = 0;
+    for (const p of pts) if (ins(p)) n++;
+    if (n > 0 && n < pts.length) fs.push(ins);
+  }
+  if (!fs.length) return [{pts, w, a: 1, amp}];
+  // overlapping shapes share one outline: drop the arcs that fall inside a neighbour
+  const inside = p => fs.some(f => f(p));
+  const out = []; let run = [], cut = false;
+  for (let i = 0; i < pts.length; i++){
+    if (inside(pts[i])){
+      if (run.length > 1) out.push({pts: run, w, a: 1, amp, tp0: !cut, tp1: false});
+      run = []; cut = true;
+    } else run.push(pts[i]);
+  }
+  if (run.length > 1) out.push({pts: run, w, a: 1, amp, tp0: !cut, tp1: true});
+  return out;
+}
+
+function buildPaths(s){
+  const P = s.pts;
+  if (!P.length) return [];
+  if (s.type === 'dot'){
+    const c = P[0], pts = [], a0 = hash3(s.seed, 1, 1) * 6.28;
+    for (let k = 0; k <= 16; k++){
+      const u = k / 16, th = a0 + u * Math.PI * 2 * 2.4, rad = 0.5 + u * 3.6;
+      pts.push({x: c.x + Math.cos(th) * rad, y: c.y + Math.sin(th) * rad});
+    }
+    return [{pts, w: 2.8, a: 1, amp: 0.45}];
+  }
+  if (s.type === 'circle') return cutMerged(s, rawOutline(s), 2.4, clamp(Math.max(s.r, 3) / 30, 0.5, 1));
+  if (s.type === 'line') return P.length > 1 ? [{pts: P, w: 2.5, a: 1, amp: 1}] : [];
+  if (s.type === 'rake'){
+    if (P.length < 2) return [];
+    const n = s.tines, out = [];
+    const NR = P.map((p, i) => {
+      const a = P[Math.max(0, i - 3)], b = P[Math.min(P.length - 1, i + 3)];
+      const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+      return {x: -dy / l, y: dx / l};
+    });
+    for (let t = 0; t < n; t++){
+      const off = (t - (n - 1) / 2) * s.gap;
+      const i0 = Math.floor(hash3(s.seed, t, 91) * 6);
+      const i1 = P.length - Math.floor(hash3(s.seed, t, 92) * 6);
+      let run = [];
+      for (let i = i0; i < i1; i++){
+        const chunk = Math.floor(i / 5);
+        if (hash3(s.seed, t * 31 + chunk, 7) < 0.1){
+          if (run.length > 1) out.push({pts: run, w: 1.8, a: 0.95, amp: 1});
+          run = []; continue;
+        }
+        const k = 1 + 0.35 * vnoise(s.seed + t * 13, i * 0.07, 3);
+        run.push({x: P[i].x + NR[i].x * off * k, y: P[i].y + NR[i].y * off * k});
+      }
+      if (run.length > 1) out.push({pts: run, w: 1.8, a: 0.95, amp: 1});
+    }
+    return out;
+  }
+  if (s.type === 'star' || s.type === 'flower') return cutMerged(s, rawOutline(s), 2.4, clamp(Math.max(s.r, 4) / 40, 0.5, 1));
+  return [];
+}
+
+function strokeInk(s){
+  const P = s.pts;
+  if (s.type === 'dot') return 10;
+  if (s.type === 'circle') return Math.PI * 2 * s.r;
+  if (s.type === 'flower' || s.type === 'star') return Math.PI * 2 * s.r * 1.8;
+  let len = 0;
+  for (let i = 1; i < P.length; i++) len += Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y);
+  return s.type === 'rake' ? len * s.tines * 0.5 : len;
+}
+
+function buildEvents(s){
+  const ev = [], P = s.pts;
+  if (s.type === 'dot') ev.push({x: P[0].x, y: P[0].y, k: 'bell'});
+  else if (s.type === 'circle') ev.push({x: Math.max(0, P[0].x - s.r), cx: P[0].x, y: P[0].y, k: 'pad', r: s.r});
+  else if (s.type === 'flower' || s.type === 'star') ev.push({x: P[0].x, y: P[0].y, k: 'star', r: s.r, m: s.m, q: s.q});
+  else if (s.type === 'line'){
+    const srt = P.map((p, i) => ({x: p.x, y: p.y, i})).sort((a, b) => a.x - b.x || a.i - b.i);
+    const step = Math.max(1, Math.floor(srt.length / 160));
+    const pts = srt.filter((_, i) => i % step === 0 || i === srt.length - 1);
+    ev.push({x: pts[0].x, x0: pts[0].x, x1: pts[pts.length - 1].x, y: pts[0].y, k: 'sweep', pts});
+  } else {
+    const gapPx = 58;
+    let acc = gapPx;
+    for (let i = 0; i < P.length; i++){
+      if (i) acc += Math.hypot(P[i].x - P[i - 1].x, P[i].y - P[i - 1].y);
+      if (acc >= gapPx){ acc = 0; ev.push({x: P[i].x, y: P[i].y, k: s.type === 'rake' ? 'strum' : 'pluck', n: s.tines}); }
+    }
+  }
+  ev.sort((a, b) => a.x - b.x);
+  for (let i = 1; i < ev.length; i++) if (ev[i].x < ev[i - 1].x + 3.2) ev[i].x = ev[i - 1].x + 3.2;
+  return ev;
+}
+
+function commit(s){
+  s.paths = null;
+  s.ink = strokeInk(s);
+  s.events = buildEvents(s);
+  strokes.push(s);
+  redoStack = [];
+  circleVer++;
+  live = null;
+  dirty = true;
+  updateDrone();
+  syncUR();
+}
+
+/* ---------- boiling charcoal renderer ---------- */
+let XA = new Float32Array(1024), YA = new Float32Array(1024), XB = new Float32Array(1024), YB = new Float32Array(1024);
+function ensureBuf(n){
+  if (n <= XA.length) return;
+  const L = Math.max(n, XA.length * 2);
+  XA = new Float32Array(L); YA = new Float32Array(L); XB = new Float32Array(L); YB = new Float32Array(L);
+}
+function jit(P, seed, v, amp, X, Y){
+  const gx = (hash3(seed, v, 11) - 0.5) * 1.4 * AMP * amp, gy = (hash3(seed, v, 12) - 0.5) * 1.4 * AMP * amp;
+  for (let i = 0; i < P.length; i++){
+    const t = i * 0.3;
+    X[i] = P[i].x + gx + vnoise(seed + 1, t, v) * AMP * amp;
+    Y[i] = P[i].y + gy + vnoise(seed + 2, t, v) * AMP * amp;
+  }
+}
+function trace(c, X, Y, s0, e){
+  c.moveTo(X[s0], Y[s0]);
+  if (e - s0 < 2){ c.lineTo(X[e], Y[e]); return; }
+  for (let i = s0 + 1; i < e; i++) c.quadraticCurveTo(X[i], Y[i], (X[i] + X[i + 1]) / 2, (Y[i] + Y[i + 1]) / 2);
+  c.lineTo(X[e], Y[e]);
+}
+function drawPath(c, path, seed, v){
+  const P = path.pts, n = P.length;
+  if (n < 2) return;
+  const cache = path.cache || (path.cache = {});
+  let e = cache[v];
+  if (!e){                                   // wobble and pressure are fixed per boil frame, so compute once
+    const XA = new Float32Array(n), YA = new Float32Array(n), XB = new Float32Array(n), YB = new Float32Array(n);
+    jit(P, seed, v, path.amp, XA, YA);
+    jit(P, seed + 500, v + 2, path.amp, XB, YB);
+    const K = 7, Wd = new Float32Array(Math.ceil((n - 1) / (K - 1)));
+    for (let k = 0, s0 = 0; s0 < n - 1; s0 += K - 1, k++){
+      const e2 = Math.min(s0 + K, n - 1), mid = (s0 + e2) >> 1;
+      const edge = Math.min(path.tp0 === false ? 99 : mid, path.tp1 === false ? 99 : n - 1 - mid);
+      const taper = Math.min(1, 0.4 + edge / 10), press = 0.85 + 0.28 * vnoise(seed + 5, mid * 0.1, 0);
+      Wd[k] = path.w * taper * press * (0.94 + 0.12 * hash3(seed, s0, v));
+    }
+    e = cache[v] = {XA, YA, XB, YB, Wd};
+  }
+  c.strokeStyle = CH;
+  c.globalAlpha = 0.08 * path.a; c.lineWidth = path.w * 3.4;                  // smudge
+  c.beginPath(); trace(c, e.XA, e.YA, 0, n - 1); c.stroke();
+  c.globalAlpha = 0.45 * path.a; c.lineWidth = Math.max(0.8, path.w * 0.5);   // sketchy echo
+  c.beginPath(); trace(c, e.XB, e.YB, 0, n - 1); c.stroke();
+  c.globalAlpha = path.a;                                                      // main body
+  const K = 7;
+  for (let k = 0, s0 = 0; s0 < n - 1; s0 += K - 1, k++){
+    c.lineWidth = e.Wd[k];
+    c.beginPath(); trace(c, e.XA, e.YA, s0, Math.min(s0 + K, n - 1)); c.stroke();
+  }
+  c.globalAlpha = 1;
+}
+function drawStroke(c, s, v){
+  if (!s.paths){ s.paths = buildPaths(s); s.cver = circleVer; if (CLOSED[s.type]) s.sig = nbSig(s); }
+  else if (CLOSED[s.type] && s.cver !== circleVer){            // only rebuild if the shapes around it changed
+    s.cver = circleVer; const sg = nbSig(s);
+    if (sg !== s.sig){ s.sig = sg; s.paths = buildPaths(s); }
+  }
+  for (let i = 0; i < s.paths.length; i++) drawPath(c, s.paths[i], s.seed + i * 17, v);
+}
+function paintInk(c, pw, ph, scale, v, withLive){      // transparent ink layer for any canvas
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalCompositeOperation = 'source-over';
+  c.clearRect(0, 0, pw, ph);
+  c.setTransform(scale, 0, 0, scale, 0, 0);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  for (let i = 0; i < strokes.length; i++) drawStroke(c, strokes[i], v);
+  if (withLive && live) drawStroke(c, live, v);
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalCompositeOperation = 'destination-out';
+  c.fillStyle = grainPat; c.fillRect(0, 0, pw, ph);
+  c.globalCompositeOperation = 'source-over';
+}
+function renderInk(v){ paintInk(g, cv.width, cv.height, DPR, v, true); }
+
+/* ---------- overlay: scanning line + pulses ---------- */
+const LOOP = 17;                       // seconds per sweep
+let scanOn = true, scan0 = performance.now() - LOOP * 1000 * 0.2, lastPx = W * 0.2;
+const pulses = [];
+let pulseSink = pulses, pulseClock = null;        // export redirects pulses to its own list and clock
+function pulse(x, y, r0, r1, life, a = 0.4, delay = 0){
+  if (pulseSink.length > 90 && pulseSink === pulses) pulseSink.shift();
+  pulseSink.push({x, y, r0, r1, life, a, t: (pulseClock !== null ? pulseClock : performance.now()) + delay, seed: (Math.random() * 1e6) | 0});
+}
+function paintOverlay(c, scale, now, list, phX){      // playhead (phX in css px, or null) and ripples
+  c.setTransform(scale, 0, 0, scale, 0, 0);
+  c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = CH;
+  const v = Math.floor(now / 1000 * FPS) % VARIANTS;
+  if (phX !== null){
+    for (const [off, a, lw] of [[0, 0.3, 1.5], [3, 0.14, 1]]){
+      c.globalAlpha = a; c.lineWidth = lw; c.beginPath();
+      const vv = (v + off) % VARIANTS;
+      for (let y = -10, i = 0; y <= H + 10; y += 12, i++){
+        const px = phX + vnoise(7 + off, i * 0.4, vv) * 1.8 * AMP / 1.9 + (off ? 2 : 0);
+        i ? c.lineTo(px, y) : c.moveTo(px, y);
+      }
+      c.stroke();
+    }
+  }
+  for (let i = 0; i < list.length; i++){
+    const p = list[i], u = (now - p.t) / 1000 / p.life;
+    if (u < 0 || u >= 1) continue;
+    const r = lerp(p.r0, p.r1, 1 - Math.pow(1 - u, 2)), N = clamp(Math.round(r / 2), 12, 48);
+    c.globalAlpha = (1 - u) * p.a; c.lineWidth = 1.4; c.beginPath();
+    for (let k = 0; k <= N; k++){
+      const th = k / N * Math.PI * 2, rr = r + vnoise(p.seed, k * 0.6, v) * 1.3;
+      const px = p.x + Math.cos(th) * rr, py = p.y + Math.sin(th) * rr;
+      k ? c.lineTo(px, py) : c.moveTo(px, py);
+    }
+    c.stroke();
+  }
+  c.globalAlpha = 1;
+}
+function drawOverlay(now){
+  og.setTransform(1, 0, 0, 1, 0, 0);
+  og.clearRect(0, 0, ov.width, ov.height);
+  for (let i = pulses.length - 1; i >= 0; i--) if ((now - pulses[i].t) / 1000 >= pulses[i].life) pulses.splice(i, 1);
+  paintOverlay(og, 1, now, pulses, scanOn ? (((now - scan0) / 1000) % LOOP) / LOOP * W : null);
+}
+
+/* ---------- audio ---------- */
+let AC = null, soundOn = true, master, dry, revIn, dlyIn, bellRev, bellDly, droneGain, droneFilt, outNode;
+const SCALE = [0, 2, 5, 7, 9], ROOT = 50, NOTES = 16;        // D suspended pentatonic, D3 up to D6
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+const idxToMidi = i => ROOT + 12 * Math.floor(i / 5) + SCALE[((i % 5) + 5) % 5];
+const fq = i => mtof(idxToMidi(i));
+const yToIdx = y => Math.min(NOTES - 1, Math.floor((1 - clamp(y / H, 0, 1)) * NOTES));
+const panOf = x => clamp(x / W * 2 - 1, -1, 1) * 0.85;
+
+function makeIR(){
+  const sr = AC.sampleRate, len = Math.floor(sr * 5.2), buf = AC.createBuffer(2, len, sr);
+  for (let c = 0; c < 2; c++){
+    const d = buf.getChannelData(c); let y = 0;
+    for (let i = 0; i < len; i++){
+      const t = i / len;
+      y += ((Math.random() * 2 - 1) - y) * (0.55 - 0.45 * t);          // tail darkens over time
+      d[i] = y * 1.6 * Math.pow(1 - t, 2.6) * Math.min(1, i / (sr * 0.02));
+    }
+  }
+  return buf;
+}
+function initAudio(){
+  if (AC) return;
+  const A = window.AudioContext || window.webkitAudioContext;
+  if (!A) return;
+  AC = new A();
+  buildGraph(false);
+}
+function buildGraph(offline){                // wires the shared effects chain onto the current AC
+  master = AC.createGain(); master.gain.value = soundOn ? 0.9 : 0;
+  const comp = AC.createDynamicsCompressor();
+  comp.threshold.value = -20; comp.ratio.value = 3; comp.attack.value = 0.02; comp.release.value = 0.4;
+  master.connect(comp); comp.connect(AC.destination); outNode = comp;
+  dry = AC.createGain(); dry.connect(master);
+  const conv = AC.createConvolver(); conv.buffer = makeIR();
+  revIn = AC.createGain(); revIn.connect(conv);
+  const revOut = AC.createGain(); revOut.gain.value = 0.75; conv.connect(revOut); revOut.connect(master);
+  dlyIn = AC.createGain();
+  const dl = AC.createDelay(2); dl.delayTime.value = 0.46;
+  const fb = AC.createGain(); fb.gain.value = 0.36;
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700;
+  dlyIn.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(master); lp.connect(revIn);
+  bellRev = AC.createGain(); bellRev.gain.value = 0.85; bellRev.connect(revIn);
+  bellDly = AC.createGain(); bellDly.gain.value = 0.25; bellDly.connect(dlyIn);
+  // drone bed: grows with the amount of ink on the page
+  droneGain = AC.createGain(); droneGain.gain.value = 0;
+  droneFilt = AC.createBiquadFilter(); droneFilt.type = 'lowpass'; droneFilt.frequency.value = 260; droneFilt.Q.value = 0.5;
+  [38, 45, 50, 57, 62].forEach((m, i) => {
+    const o = AC.createOscillator(); o.type = i < 2 ? 'sine' : 'triangle';
+    o.frequency.value = mtof(m); o.detune.value = (i - 2) * 4;
+    const og2 = AC.createGain(); og2.gain.value = [0.5, 0.35, 0.25, 0.12, 0.07][i];
+    o.connect(og2); og2.connect(droneFilt); o.start();
+  });
+  const lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 120;
+  lfo.connect(lg); lg.connect(droneFilt.frequency); lfo.start();
+  droneFilt.connect(droneGain); send(droneGain, 0, 0.6, 0.1);
+  updateDrone(offline);
+}
+function resumeAudio(){ if (AC && AC.state !== 'running') AC.resume().catch(() => {}); }
+function updateDrone(immediate){
+  if (!AC) return;
+  let total = 0;
+  for (const s of strokes) total += s.ink;
+  const k = 1 - Math.exp(-total / (Math.hypot(W, H) * 3)), t = AC.currentTime;
+  if (immediate){ droneGain.gain.value = 0.1 * k; droneFilt.frequency.value = 260 + 1400 * k; return; }
+  droneGain.gain.setTargetAtTime(0.1 * k, t, 1.2);
+  droneFilt.frequency.setTargetAtTime(260 + 1400 * k, t, 1.5);
+}
+function send(node, pan, rev, dly){
+  let tail = node, p = null;
+  if (AC.createStereoPanner){ p = AC.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); node.connect(p); tail = p; }
+  tail.connect(dry);
+  if (rev){ const x = AC.createGain(); x.gain.value = rev; tail.connect(x); x.connect(revIn); }
+  if (dly){ const x = AC.createGain(); x.gain.value = dly; tail.connect(x); x.connect(dlyIn); }
+  return p;
+}
+let voices = 0, capVoices = true;
+const MAXV = 90;                              // simultaneous live bells before new ones are skipped
+function sendBell(node, pan){                 // one panner per bell; reverb and echo sends are shared
+  let tail = node;
+  if (AC.createStereoPanner){ const p = AC.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); node.connect(p); tail = p; }
+  tail.connect(dry); tail.connect(bellRev); tail.connect(bellDly);
+}
+function bell(freq, pan, vel, when, dur, bright, rev, att = 0.012, glass = false){
+  if (!AC || !soundOn || freq > 12000) return;
+  if (capVoices && voices >= MAXV) return;
+  const t = when || AC.currentTime;
+  const out = AC.createGain();
+  out.gain.setValueAtTime(0.0001, t);
+  out.gain.linearRampToValueAtTime(vel, t + att);
+  out.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  const parts = glass ? [[1, 1], [2.76, 0.22], [5.4, 0.07]]                       // chime-like partials
+                      : [[1, 1], [2, 0.28], [3.01, 0.09 * bright + 0.001]];
+  parts.forEach(([r, a], i) => {
+    if (freq * r > 12000) return;
+    const o = AC.createOscillator(); o.type = 'sine';
+    o.frequency.value = freq * r * (1 + (Math.random() - 0.5) * 0.003);
+    const pg = AC.createGain(); pg.gain.setValueAtTime(a, t);
+    if (i > 0) pg.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.35);
+    if (i === 0 && capVoices){ voices++; o.onended = () => { voices--; }; }
+    o.connect(pg); pg.connect(out); o.start(t); o.stop(t + dur + 0.1);
+  });
+  sendBell(out, pan);
+}
+function padStart(idx, pan, when){           // held while a circle grows
+  const base = Math.max(0, idx - 5), notes = [base, base + 2, base + 4];
+  const filt = AC.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 260; filt.Q.value = 0.4;
+  const gn = AC.createGain(); gn.gain.value = 0.0001;
+  const oscs = [];
+  notes.forEach((n, i) => [-7, 6].forEach(c => {
+    const o = AC.createOscillator(); o.type = i === 0 ? 'sawtooth' : 'triangle';
+    o.frequency.value = fq(n); o.detune.value = c;
+    const og2 = AC.createGain(); og2.gain.value = i === 0 ? 0.22 : 0.38;
+    o.connect(og2); og2.connect(filt); o.start(when || 0); oscs.push(o);
+  }));
+  filt.connect(gn); send(gn, pan, 0.9, 0.3);
+  return {gn, filt, oscs};
+}
+function padUpdate(p, size){
+  const t = AC.currentTime;
+  p.filt.frequency.setTargetAtTime(260 + size * 2600, t, 0.15);
+  p.gn.gain.setTargetAtTime(0.012 + size * 0.1, t, 0.2);
+}
+function padStop(p, rel = 2.6){
+  const t = AC.currentTime;
+  p.gn.gain.cancelScheduledValues(t);
+  p.gn.gain.setTargetAtTime(0.0001, t, rel / 4);
+  p.oscs.forEach(o => o.stop(t + rel + 0.4));
+}
+function padNote(idx, pan, dur, size, vol, when){   // timed pad for playback and flourishes
+  if (!AC || !soundOn) return;
+  if (capVoices && voices > MAXV - 6) return;
+  const t = when || AC.currentTime, p = padStart(idx, pan, t);
+  if (capVoices){ voices += 3; p.oscs[0].onended = () => { voices -= 3; }; }
+  p.filt.frequency.setValueAtTime(260, t);
+  p.filt.frequency.linearRampToValueAtTime(500 + size * 2200, t + dur * 0.45);
+  p.filt.frequency.linearRampToValueAtTime(300, t + dur);
+  p.gn.gain.cancelScheduledValues(t);
+  p.gn.gain.setValueAtTime(0.0001, t);
+  p.gn.gain.linearRampToValueAtTime(vol, t + dur * 0.45);
+  p.gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  p.oscs.forEach(o => o.stop(t + dur + 0.2));
+}
+function sustainStart(offs, shift, wave, maxG, pan){   // continuous voice while dragging
+  const filt = AC.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 400; filt.Q.value = 0.7;
+  const gn = AC.createGain(); gn.gain.value = 0.0001;
+  const lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = 5; lg.gain.value = 3; lfo.connect(lg);
+  const oscs = [];
+  offs.forEach(() => [-6, 6].forEach(c => {
+    const o = AC.createOscillator(); o.type = wave; o.detune.value = c; lg.connect(o.detune);
+    const og2 = AC.createGain(); og2.gain.value = 0.5 / Math.sqrt(offs.length);
+    o.connect(og2); og2.connect(filt); oscs.push(o);
+  }));
+  const v = {oscs, filt, gn, lfo, offs, shift, maxG, base: -1, pan: null};
+  filt.connect(gn); v.pan = send(gn, pan, 0.7, 0.3);
+  oscs.forEach(o => o.start()); lfo.start();
+  return v;
+}
+function voiceUpdate(p){
+  const v = p.voice; if (!v || !AC) return;
+  const t = AC.currentTime, base = Math.max(0, yToIdx(p.y) + v.shift);
+  if (base !== v.base){
+    const first = v.base < 0; v.base = base;
+    v.oscs.forEach((o, k) => {
+      const f = fq(base + v.offs[k >> 1]);
+      first ? (o.frequency.value = f) : o.frequency.setTargetAtTime(f, t, 0.06);
+    });
+  }
+  const sp = clamp(p.speed / 1.6, 0, 1);
+  v.gn.gain.setTargetAtTime(v.maxG * (0.1 + 0.9 * sp), t, 0.07);
+  v.filt.frequency.setTargetAtTime(350 + sp * 2600, t, 0.08);
+  if (v.pan) v.pan.pan.setTargetAtTime(panOf(p.x), t, 0.08);
+}
+function voiceStop(v){
+  if (!v || !AC) return;
+  const t = AC.currentTime;
+  v.gn.gain.setTargetAtTime(0, t, 0.18);
+  v.oscs.forEach(o => o.stop(t + 1.5)); v.lfo.stop(t + 1.5);
+}
+function starFlourish(cx, cy, m, R, q, vel, when){
+  if (!AC || !soundOn) return;
+  if (q < 2){                                  // star: a soft cascade of glassy chimes
+    const t0 = when || AC.currentTime, pan = panOf(cx), n = m * 2 + 2, base = Math.min(15, yToIdx(cy)) + 2;
+    bell(fq(Math.min(21, base + 3)), pan, vel * 0.07, t0, 3.6, 1, 0.95, 0.02, true);
+    let t = t0;
+    for (let i = 0; i < n; i++){
+      const u = i / n;
+      t += 0.04 + Math.random() * 0.08 + u * u * 0.16;             // sparkles thin out as they fade
+      bell(fq(Math.min(21, base + Math.floor(Math.random() * 8))) * (1 + (Math.random() - 0.5) * 0.004),
+           clamp(pan + (Math.random() - 0.5) * 1.2, -1, 1), vel * (0.035 + Math.random() * 0.04) * (1 - u * 0.5),
+           t, 1.8 + Math.random() * 1.4, 1, 0.95, 0.02, true);
+    }
+    return;
+  }
+  const t0 = when || AC.currentTime, low = Math.max(0, yToIdx(cy) - 5), pan = panOf(cx);
+  const pat = [0, 2, 4, 3, 5, 7, 6, 8], size = clamp(R / 200, 0.15, 1);
+  for (let i = 0; i < m; i++){
+    const t = t0 + i * (0.06 + Math.random() * 0.05) * (1.2 - size * 0.4);
+    bell(fq(low + pat[i % 8]) * (1 + (Math.random() - 0.5) * 0.006),
+         clamp(pan + (Math.random() - 0.5) * 0.4, -1, 1),
+         vel * (0.07 + Math.random() * 0.05), t, 3 + size * 2, q < 2 ? 1 : clamp((q - 2) / 2, 0.15, 1), 0.9);
+  }
+  padNote(low, pan, 4 + size * 3, size, 0.05 * vel, t0);
+}
+
+/* ---------- scanning playback ---------- */
+function sweepVoice(ev, t){                  // one bowed, cello-like voice; pitch follows the line's height
+  if (!AC || !soundOn || (capVoices && voices > MAXV - 4)) return;
+  const pts = ev.pts, x0 = ev.x0, x1 = ev.x1, along = (x1 - x0) >= 2;
+  const dur = clamp((x1 - x0) / W * LOOP, 0.6, LOOP), N = 96, ys = new Float32Array(N), pn = new Float32Array(N);
+  for (let i = 0; i < N; i++){
+    const u = i / (N - 1), x = lerp(x0, x1, u);
+    let y;
+    if (!along) y = pts[Math.round(u * (pts.length - 1))].y;
+    else {
+      let j = 1; while (j < pts.length - 1 && pts[j].x < x) j++;
+      const a = pts[j - 1], b = pts[j], span = b.x - a.x;
+      y = span > 0 ? lerp(a.y, b.y, clamp((x - a.x) / span, 0, 1)) : b.y;
+    }
+    ys[i] = y; pn[i] = panOf(x);
+  }
+  let sm = ys;                                   // light smoothing, then snap to the scale with hysteresis so notes hold
+  { const n2 = new Float32Array(N); for (let i = 0; i < N; i++) n2[i] = (sm[Math.max(0, i - 1)] + sm[i] + sm[Math.min(N - 1, i + 1)]) / 3; sm = n2; }
+  const snap = m => { let best = m, bd = 1e9; for (let o = -3; o <= 6; o++) for (const d of SCALE){ const c = ROOT + o * 12 + d, e = Math.abs(c - m); if (e < bd){ bd = e; best = c; } } return best; };
+  const f = new Float32Array(N); let cur = null;
+  for (let i = 0; i < N; i++){
+    const m = 38 + (1 - clamp(sm[i] / H, 0, 1)) * 31;
+    if (cur === null || Math.abs(m - cur) > 1.6) cur = snap(m);
+    f[i] = mtof(cur);
+  }
+  const fmid = f[N >> 1];
+  const out = AC.createGain();
+  const att = Math.min(0.3, dur * 0.35), rel = 1.1, vol = 0.09 + clamp((x1 - x0) / (W * 0.5), 0, 1) * 0.03;
+  out.gain.setValueAtTime(0.0001, t);
+  out.gain.linearRampToValueAtTime(vol * 0.8, t + 0.04);          // bow catches the string
+  out.gain.linearRampToValueAtTime(vol * 0.6, t + 0.11);
+  out.gain.linearRampToValueAtTime(vol, t + att);
+  out.gain.setValueAtTime(vol, t + Math.max(att, dur - 0.2));
+  out.gain.exponentialRampToValueAtTime(0.0001, t + dur + rel);
+  // an uneven bow pressure: slow irregular swell instead of a flat level
+  const sw = new Float32Array(24); for (let i = 0; i < 24; i++) sw[i] = 0.88 + Math.random() * 0.2;
+  const swell = AC.createGain(); swell.gain.setValueCurveAtTime(sw, t, dur);
+  // body: parallel resonances, like the wooden box (A0 ~98, T1 ~190, ~280, ~410, ~560 Hz plus a dark top)
+  const body = AC.createGain(), bodyOut = AC.createGain(); bodyOut.gain.value = 1.5;
+  for (const [fr, q, g] of [[98, 5, 1.0], [190, 6, 1.4], [280, 7, 1.0], [410, 6, 0.9], [560, 5, 0.6], [900, 3, 0.35]]){
+    const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = fr; bp.Q.value = q;
+    const bg = AC.createGain(); bg.gain.value = g; body.connect(bp); bp.connect(bg); bg.connect(bodyOut);
+  }
+  const dir = AC.createGain(); dir.gain.value = 0.35; body.connect(dir); dir.connect(bodyOut);   // some direct string tone
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.4;
+  lp.frequency.setValueAtTime(fmid * 1.4, t);
+  lp.frequency.linearRampToValueAtTime(clamp(fmid * 3.0, 450, 1400), t + att * 1.5);
+  // string: sawtooth rounded by a gentle harmonic roll-off (a periodic wave, not a raw saw)
+  const H2 = 28, re = new Float32Array(H2), im = new Float32Array(H2);
+  for (let n = 1; n < H2; n++) im[n] = (1 / Math.pow(n, 1.35)) * (n % 5 === 0 ? 0.7 : 1);
+  const wave = AC.createPeriodicWave(re, im);
+  const lfo = AC.createOscillator(), lg = AC.createGain(), lfo2 = AC.createOscillator(), lg2 = AC.createGain();
+  lfo.type = 'sine'; lfo.frequency.value = 4.9 + Math.random() * 0.8;
+  lfo2.type = 'sine'; lfo2.frequency.value = 0.6 + Math.random() * 0.5; lg2.gain.value = 4;      // slow wander of the hand
+  lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(0, t + Math.min(0.45, dur * 0.4)); lg.gain.linearRampToValueAtTime(11, t + Math.min(1.3, dur * 0.8));
+  lfo.connect(lg); lfo2.connect(lg2);
+  const oscs = [];
+  for (const d of [-5, 4]){
+    const o = AC.createOscillator(); o.setPeriodicWave(wave); o.detune.value = d;
+    o.frequency.setValueCurveAtTime(f, t, dur); lg.connect(o.detune); lg2.connect(o.detune); o.connect(lp); oscs.push(o);
+  }
+  // bow noise: a breath of rosin/hair, strongest at the attack, band-limited
+  if (!sweepVoice.nb){ const nb = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; sweepVoice.nb = nb; }
+  const nz = AC.createBufferSource(); nz.buffer = sweepVoice.nb; nz.loop = true;
+  const nf = AC.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = clamp(fmid * 4, 700, 2600); nf.Q.value = 0.9;
+  const ng = AC.createGain(); ng.gain.setValueAtTime(0.0001, t);
+  ng.gain.linearRampToValueAtTime(0.05, t + 0.03); ng.gain.exponentialRampToValueAtTime(0.012, t + 0.25); ng.gain.setValueAtTime(0.012, t + Math.max(0.25, dur));
+  ng.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.3);
+  nz.connect(nf); nf.connect(ng); ng.connect(lp);
+  lp.connect(body); body.connect(dir);
+  const sub = AC.createOscillator(), sg = AC.createGain();                               // warm fundamental
+  sub.type = 'sine'; sg.gain.value = 0.35; const lo = new Float32Array(N); for (let i = 0; i < N; i++) lo[i] = f[i];
+  sub.frequency.setValueCurveAtTime(lo, t, dur); sub.connect(sg); sg.connect(bodyOut);
+  bodyOut.connect(swell); swell.connect(out);
+  const pnr = send(out, pn[0], 0.95, 0.25);
+  if (pnr) pnr.pan.setValueCurveAtTime(pn, t, dur);
+  const end = t + dur + rel + 0.1;
+  if (capVoices){ voices++; oscs[0].onended = () => { voices--; }; }
+  for (const o of oscs){ o.start(t); o.stop(end); }
+  sub.start(t); sub.stop(end); nz.start(t); nz.stop(end); lfo.start(t); lfo.stop(end); lfo2.start(t); lfo2.stop(end);
+}
+function trigger(ev, at){
+  if (capVoices && voices >= MAXV) return;
+  const t = at !== undefined ? at : AC.currentTime + 0.03, pan = panOf(ev.x), idx = yToIdx(ev.y);
+  if (ev.k === 'bell'){ bell(fq(idx), pan, 0.11, t, 4.5, 0.7, 0.85); pulse(ev.x, ev.y, 5, 34, 1.3); }
+  else if (ev.k === 'sweep'){
+    sweepVoice(ev, t);
+    let last = -1e9;
+    for (const p of ev.pts) if (p.x - last >= 90){ last = p.x; pulse(p.x, p.y, 3, 13, 0.7, 0.3, (p.x - ev.x0) / W * LOOP * 1000); }
+  }
+  else if (ev.k === 'pluck'){ bell(fq(idx), pan, 0.05, t, 3.4, 0.35, 0.8, 0.03); pulse(ev.x, ev.y, 3, 15, 0.8, 0.3); }
+  else if (ev.k === 'pad'){
+    const dur = clamp(2 * ev.r / W * LOOP, 1.6, 12);
+    padNote(idx, pan, dur, clamp(ev.r / 260, 0.1, 1), 0.06, t);
+    pulse(ev.cx, ev.y, ev.r * 0.96, ev.r * 1.1, dur, 0.34);
+  } else if (ev.k === 'strum'){
+    for (let j = 0; j < ev.n; j++) bell(fq(Math.max(0, idx - 3) + j), pan, 0.04, t + j * 0.05, 3.8, 0.4, 0.8);
+    pulse(ev.x, ev.y, 6, 26, 1, 0.3);
+  } else if (ev.k === 'star'){
+    starFlourish(ev.x, ev.y, ev.m, ev.r, ev.q, 0.55, t);
+    pulse(ev.x, ev.y, ev.r * 0.5, ev.r * 1.25, 1.3, 0.34);
+  }
+}
+function fireRange(lo, hi, budget){
+  for (const s of strokes){
+    const E = s.events;
+    for (let i = 0; i < E.length; i++){
+      if (E[i].x > hi) break;
+      if (E[i].x > lo && budget.n > 0){ trigger(E[i]); budget.n--; }
+    }
+  }
+}
+function stepScan(now){
+  const px = (((now - scan0) / 1000) % LOOP) / LOOP * W;
+  if (scanOn && AC && AC.state === 'running' && soundOn){
+    const wrapped = px < lastPx, gap = wrapped ? (W - lastPx) + px : px - lastPx;
+    if (gap < W * 0.15){
+      const budget = {n: 12};
+      if (wrapped){ fireRange(lastPx, W + 1, budget); fireRange(-1, px, budget); }
+      else fireRange(lastPx, px, budget);
+    }
+  }
+  lastPx = px;
+}
+
+/* ---------- gestures ---------- */
+const HOLD_MS = 200, MOVE_PX = 7;
+let tool = 'draw', ptr = null;
+const R_MAX = () => Math.min(W, H) * 0.48;
+const hints = {
+  draw: 'tap for a dot. hold for a circle. drag for a line.',
+  rake: '',
+  flower: '',
+  star: ''
+};
+const hintFor = () => hints[tool];
+
+function startHold(){
+  if (!ptr || ptr.mode !== 'pending') return;
+  ptr.mode = 'circle'; circleVer++;
+  const s = newStroke('circle'); s.pts = [{x: ptr.x0, y: ptr.y0}]; s.r = 8; live = s; ptr.s = s;
+  ptr.holdStart = performance.now();
+  if (AC && soundOn) ptr.pad = padStart(yToIdx(ptr.y0), panOf(ptr.x0));
+  dirty = true;
+}
+function startShapeHold(){
+  if (!ptr || ptr.mode !== 'shape') return;
+  ptr.growing = true; ptr.holdStart = performance.now(); circleVer++;
+  if (AC && soundOn) ptr.pad = padStart(yToIdx(ptr.y0), panOf(ptr.x0));
+  dirty = true;
+}
+function startLine(){
+  ptr.mode = 'line';
+  const s = newStroke('line'); s.pts = [{x: ptr.x0, y: ptr.y0}]; live = s; ptr.s = s;
+  if (AC && soundOn) ptr.voice = sustainStart([0], 0, 'triangle', 0.16, panOf(ptr.x0));
+}
+function onMove(x, y, ts){
+  const p = ptr;
+  const d = Math.hypot(x - p.x, y - p.y), dt = Math.max(1, ts - p.lastT);
+  p.speed = p.speed * 0.8 + (d / dt) * 0.2; p.lastT = ts; p.x = x; p.y = y;
+  if (p.mode === 'pending' && Math.hypot(x - p.x0, y - p.y0) > MOVE_PX){
+    clearTimeout(p.timer); startLine(); addPt(p.s, x, y);
+  } else if (p.mode === 'line' || p.mode === 'rake'){
+    addPt(p.s, x, y);
+  }
+  dirty = true;
+}
+function onDown(e){
+  if (ptr || busy || e.button > 0) return;
+  initAudio(); resumeAudio();
+  try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+  const x = e.clientX, y = e.clientY;
+  ptr = {id: e.pointerId, x0: x, y0: y, x, y, lastT: e.timeStamp, speed: 0, mode: 'pending',
+         s: null, voice: null, pad: null, timer: null, holdStart: 0, lastTip: null, lastTick: 0, ticks: 0};
+  document.body.classList.add('started');
+  if (tool === 'draw'){
+    ptr.timer = setTimeout(startHold, HOLD_MS);
+  } else if (tool === 'rake'){
+    ptr.mode = 'rake';
+    const s = newStroke('rake'); s.pts = [{x, y}]; live = s; ptr.s = s;
+    if (AC && soundOn){
+      const offs = []; for (let i = 0; i < s.tines; i++) offs.push(i);
+      ptr.voice = sustainStart(offs, -4, 'triangle', 0.13, panOf(x));
+    }
+  } else {
+    ptr.mode = 'shape';
+    const s = newStroke(tool); s.pts = [{x, y}]; s.r = 8; s.ang = Math.random() * 6.28; live = s; ptr.s = s;
+    ptr.timer = setTimeout(startShapeHold, HOLD_MS);
+  }
+  dirty = true;
+}
+function onUp(e){
+  const p = ptr;
+  if (!p || (e && e.pointerId !== p.id)) return;
+  ptr = null; clearTimeout(p.timer);
+  const idx = yToIdx(p.y0), now = AC ? AC.currentTime : 0;
+  if (p.mode === 'pending'){
+    const s = newStroke('dot'); s.pts = [{x: p.x0, y: p.y0}]; commit(s);
+    bell(fq(idx), panOf(p.x0), 0.15, 0, 4.2, 0.8, 0.85); pulse(p.x0, p.y0, 5, 30, 1.2);
+  } else if (p.mode === 'circle'){
+    commit(p.s);
+    if (p.pad) padStop(p.pad);
+    bell(fq(idx), panOf(p.x0), 0.13, 0, 6, 0.8, 1);
+    bell(fq(Math.max(0, idx - 5)) / 2, panOf(p.x0), 0.1, 0, 6.5, 0.1, 1);
+    pulse(p.x0, p.y0, p.s.r * 0.98, p.s.r * 1.3, 1.6, 0.4);
+  } else if (p.mode === 'line'){
+    voiceStop(p.voice); commit(p.s);
+  } else if (p.mode === 'rake'){
+    voiceStop(p.voice);
+    if (p.s.pts.length >= 4) commit(p.s); else { live = null; dirty = true; }
+  } else if (p.mode === 'shape'){
+    const s = p.s;
+    if (s.r < 14){ s.r = 9 + Math.random() * 3; }   // a click makes a tiny one
+    if (p.pad) padStop(p.pad);
+    s.paths = null; commit(s);
+    starFlourish(p.x0, p.y0, s.m, s.r, s.q, 1, now);
+    pulse(p.x0, p.y0, s.r * 0.6, s.r * 1.3, 1.3, 0.4);
+  }
+  resumeAudio();
+}
+stage.addEventListener('pointerdown', onDown);
+stage.addEventListener('pointermove', e => {
+  if (!ptr || e.pointerId !== ptr.id) return;
+  const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [];
+  if (list.length) list.forEach(c => onMove(c.clientX, c.clientY, c.timeStamp)); else onMove(e.clientX, e.clientY, e.timeStamp);
+});
+stage.addEventListener('pointerup', onUp);
+stage.addEventListener('pointercancel', onUp);
+stage.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ---------- toolbar ---------- */
+function setTool(t){
+  tool = t;
+  document.querySelectorAll('.tool').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
+  $('hint').textContent = hintFor();
+}
+document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => { initAudio(); resumeAudio(); setTool(b.dataset.tool); }));
+const SAVE_KEY = 'sketch-a-score:v1'; let saveT = 0;
+function persist(now){                                  // keep the page between visits (strokes only, stored as fractions of the screen)
+  clearTimeout(saveT);
+  const write = () => {
+    try {
+      const U = Math.min(W, H);
+      localStorage.setItem(SAVE_KEY, JSON.stringify({v: 1, s: strokes.map(s => ({t: s.type, d: s.seed, r: +(s.r / U).toFixed(4), a: +s.ang.toFixed(3), p: s.pts.map(q => [+(q.x / W).toFixed(4), +(q.y / H).toFixed(4)])}))}));
+    } catch (_) {}
+  };
+  if (now === true) write(); else saveT = setTimeout(write, 500);
+}
+function restore(){
+  let raw; try { raw = localStorage.getItem(SAVE_KEY); } catch (_) { return false; }
+  if (!raw) return false;
+  try {
+    const d = JSON.parse(raw), U = Math.min(W, H);
+    if (!d || d.v !== 1 || !Array.isArray(d.s)) return false;
+    for (const o of d.s){
+      const s = newStroke(o.t, o.d); s.pts = o.p.map(q => ({x: q[0] * W, y: q[1] * H})); s.r = o.r * U; s.ang = o.a;
+      if (s.pts.length) commit(s);
+    }
+    return true;
+  } catch (e){ strokes = []; return false; }
+}
+addEventListener('pagehide', () => persist(true));
+let redoStack = [];
+function syncUR(){ $('undo').disabled = !strokes.length; $('redo').disabled = !redoStack.length; persist(); }
+function undo(){ if (ptr || busy) return; const s = strokes.pop(); if (s) redoStack.push(s); circleVer++; updateDrone(); dirty = true; syncUR(); }
+function redo(){ if (ptr || busy) return; const s = redoStack.pop(); if (s) strokes.push(s); circleVer++; updateDrone(); dirty = true; syncUR(); }
+$('undo').addEventListener('click', undo);
+$('redo').addEventListener('click', redo);
+$('clear').addEventListener('click', () => { if (ptr || busy) return; strokes = []; redoStack = []; circleVer++; updateDrone(); dirty = true; syncUR(); });
+function setScan(on){
+  scanOn = on; $('scan').setAttribute('aria-pressed', String(on));
+  if (on){ scan0 = performance.now(); lastPx = 0; }
+}
+$('scan').addEventListener('click', () => { initAudio(); resumeAudio(); setScan(!scanOn); });
+function setGrid(on){ $('grid').hidden = !on; $('gridbtn').setAttribute('aria-pressed', String(on)); }
+$('gridbtn').addEventListener('click', () => setGrid($('grid').hidden));
+$('snd').addEventListener('click', e => {
+  initAudio(); resumeAudio();
+  soundOn = !soundOn; e.currentTarget.setAttribute('aria-pressed', String(soundOn));
+  if (AC) master.gain.setTargetAtTime(soundOn ? 0.9 : 0, AC.currentTime, 0.05);
+});
+addEventListener('keyup', e => { if (e.code === 'Space') e.preventDefault(); });
+addEventListener('keydown', e => {
+  if (!$('pv').hidden || (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName))) return;
+  if (e.code === 'Space'){ e.preventDefault(); if (!e.repeat){ initAudio(); resumeAudio(); setScan(!scanOn); } return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); if (e.shiftKey) redo(); else undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y'){ e.preventDefault(); redo(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'd' || k === '1') setTool('draw'); else if (k === 'r' || k === '2') setTool('rake'); else if (k === 'f' || k === '3') setTool('flower'); else if (k === 's' || k === '4') setTool('star'); else if (k === 'g') setGrid($('grid').hidden);
+});
+
+/* ---------- saving: still png, boil gif, mp4 with sound ---------- */
+const PAPER = [238, 235, 227], CHR = [54, 54, 59];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let downloads = null, busy = false;
+const newCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+function fitSize(maxSide){
+  const s = Math.min(1, maxSide / Math.max(W, H));
+  return {w: Math.max(2, Math.round(W * s / 2) * 2), h: Math.max(2, Math.round(H * s / 2) * 2)};
+}
+function compose(out, inkC, w, h, scale, v, now, list, phX){
+  paintInk(inkC.getContext('2d'), w, h, scale, v, false);
+  const o = out.getContext('2d');
+  o.setTransform(1, 0, 0, 1, 0, 0);
+  o.fillStyle = 'rgb(' + PAPER.join(',') + ')'; o.fillRect(0, 0, w, h);
+  o.drawImage(inkC, 0, 0);
+  if (list) paintOverlay(o, scale, now, list, phX);
+}
+
+async function exportPNG(){
+  const D = Math.min(window.devicePixelRatio || 1, 2), w = Math.round(W * D), h = Math.round(H * D), out = newCanvas(w, h), inkC = newCanvas(w, h);
+  compose(out, inkC, w, h, D, Math.floor(performance.now() / 1000 * FPS) % VARIANTS, 0, null, null);
+  return new Promise((res, rej) => out.toBlob(b => b ? res(b) : rej(new Error('png')), 'image/png'));
+}
+
+function lzwEncode(idx, mcs){
+  const clear = 1 << mcs, eoi = clear + 1, out = [];
+  let cur = 0, shift = 0, codeSize = mcs + 1, next = eoi + 1, dict = new Map();
+  const emit = c => { cur |= c << shift; shift += codeSize; while (shift >= 8){ out.push(cur & 255); cur >>>= 8; shift -= 8; } };
+  emit(clear);
+  let ib = idx[0];
+  for (let i = 1; i < idx.length; i++){
+    const k = idx[i], key = (ib << 8) | k, hit = dict.get(key);
+    if (hit !== undefined){ ib = hit; continue; }
+    emit(ib);
+    if (next === 4096){ emit(clear); next = eoi + 1; codeSize = mcs + 1; dict = new Map(); }
+    else { if (next >= (1 << codeSize)) codeSize++; dict.set(key, next++); }
+    ib = k;
+  }
+  emit(ib); emit(eoi);
+  if (shift > 0) out.push(cur & 255);
+  return out;
+}
+async function exportGIF(progress){
+  const {w, h} = fitSize(720), scale = w / W, out = newCanvas(w, h), inkC = newCanvas(w, h);
+  const oc = out.getContext('2d', {willReadFrequently: true}), NF = 8, frames = [];
+  for (let f = 0; f < NF; f++){
+    compose(out, inkC, w, h, scale, f, 0, null, null);
+    const d = oc.getImageData(0, 0, w, h).data, idx = new Uint8Array(w * h);
+    for (let i = 0; i < idx.length; i++) idx[i] = clamp(Math.round((PAPER[0] - d[i * 4]) / (PAPER[0] - CHR[0]) * 63), 0, 63);
+    frames.push(idx); progress(f / NF * 0.5); await sleep(0);
+  }
+  const u16 = v => [v & 255, (v >> 8) & 255], pal = [];
+  for (let i = 0; i < 64; i++) for (let c = 0; c < 3; c++) pal.push(Math.round(PAPER[c] + (CHR[c] - PAPER[c]) * i / 63));
+  const parts = [new Uint8Array([71, 73, 70, 56, 57, 97, ...u16(w), ...u16(h), 0xF5, 0, 0, ...pal]),
+                 new Uint8Array([0x21, 0xFF, 0x0B, 78, 69, 84, 83, 67, 65, 80, 69, 50, 46, 48, 3, 1, 0, 0, 0])];
+  const delay = Math.round(100 / FPS);
+  for (let f = 0; f < NF; f++){
+    parts.push(new Uint8Array([0x21, 0xF9, 4, 0, ...u16(delay), 0, 0, 0x2C, 0, 0, 0, 0, ...u16(w), ...u16(h), 0, 6]));
+    const data = lzwEncode(frames[f], 6), blocks = new Uint8Array(data.length + Math.ceil(data.length / 255) + 1);
+    let p = 0;
+    for (let o = 0; o < data.length; o += 255){
+      const n = Math.min(255, data.length - o); blocks[p++] = n;
+      for (let j = 0; j < n; j++) blocks[p++] = data[o + j];
+    }
+    parts.push(blocks);
+    progress(0.5 + (f + 1) / NF * 0.5); await sleep(0);
+  }
+  parts.push(new Uint8Array([0x3B]));
+  return new Blob(parts, {type: 'image/gif'});
+}
+
+function loadMuxer(){
+  if (window.Mp4Muxer) return Promise.resolve(window.Mp4Muxer);
+  const urls = ['mp4-muxer.js'].concat(['5.2.1', '5.1.3', '5.2.2'].map(v => 'https://cdn.jsdelivr.net/npm/mp4-muxer@' + v + '/build/mp4-muxer.js'));
+  return urls.reduce((chain, url) => chain.then(m => m || new Promise(res => {
+    const sc = document.createElement('script'); sc.src = url;
+    sc.onload = () => res(window.Mp4Muxer || null); sc.onerror = () => res(null);
+    document.head.appendChild(sc);
+  })), Promise.resolve(null)).then(m => { if (!m) throw {code: 'muxer'}; return m; });
+}
+
+// Plays every scan event into an offline audio context, using the same voices as live sound.
+async function renderSound(dur, ripples){
+  const sr = 48000, oc = new OfflineAudioContext(2, Math.ceil(sr * dur), sr);
+  const keep = {AC, master, dry, revIn, dlyIn, bellRev, bellDly, droneGain, droneFilt, outNode, soundOn, pulseSink, pulseClock, capVoices};
+  AC = oc; soundOn = true; pulseSink = ripples; capVoices = false;
+  try {
+    buildGraph(true);
+    for (const s of strokes) for (const ev of s.events){
+      const te = ev.x / W * LOOP; pulseClock = te * 1000; trigger(ev, te + 0.03);
+    }
+  } finally {
+    ({AC, master, dry, revIn, dlyIn, bellRev, bellDly, droneGain, droneFilt, outNode, soundOn, pulseSink, pulseClock, capVoices} = keep);
+  }
+  return oc.startRendering();
+}
+
+async function exportMP4(progress){
+  if (!window.VideoEncoder || !window.AudioEncoder || !window.OfflineAudioContext || !window.VideoFrame) throw {code: 'nosupport'};
+  const {w, h} = fitSize(1280), scale = w / W, FR = 30, SR = 48000, DUR = LOOP + 4;
+  const bitrate = Math.round(w * h * FR * 0.1);
+  let vcodec = null;
+  for (const c of ['avc1.640028', 'avc1.4d0028', 'avc1.420028']){
+    try { const r = await VideoEncoder.isConfigSupported({codec: c, width: w, height: h, bitrate, framerate: FR}); if (r.supported){ vcodec = c; break; } } catch (_) {}
+  }
+  if (!vcodec) throw {code: 'nosupport'};
+  let acodec = null;
+  for (const [name, c] of [['aac', 'mp4a.40.2'], ['opus', 'opus']]){
+    try { const r = await AudioEncoder.isConfigSupported({codec: c, sampleRate: SR, numberOfChannels: 2, bitrate: 128000}); if (r.supported){ acodec = name; break; } } catch (_) {}
+  }
+  if (!acodec) throw {code: 'nosupport'};
+  progress('loading the video packer');
+  const M = await loadMuxer();
+  progress('rendering the sound');
+  const ripples = [], sound = await renderSound(DUR, ripples);
+  const muxer = new M.Muxer({target: new M.ArrayBufferTarget(), video: {codec: 'avc', width: w, height: h},
+    audio: {codec: acodec, numberOfChannels: 2, sampleRate: SR}, fastStart: 'in-memory', firstTimestampBehavior: 'offset'});
+  let err = null;
+  const aenc = new AudioEncoder({output: (c, m) => muxer.addAudioChunk(c, m), error: e => { err = e; }});
+  aenc.configure({codec: acodec === 'aac' ? 'mp4a.40.2' : 'opus', sampleRate: SR, numberOfChannels: 2, bitrate: 128000});
+  const L = sound.getChannelData(0), R = sound.getChannelData(1), CHUNK = 4800;
+  for (let o = 0; o < L.length; o += CHUNK){
+    const n = Math.min(CHUNK, L.length - o), data = new Float32Array(n * 2);
+    data.set(L.subarray(o, o + n), 0); data.set(R.subarray(o, o + n), n);
+    const ad = new AudioData({format: 'f32-planar', sampleRate: SR, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(o / SR * 1e6), data});
+    aenc.encode(ad); ad.close();
+    if (aenc.encodeQueueSize > 20) await sleep(0);
+    if (err) throw err;
+  }
+  await aenc.flush();
+  const venc = new VideoEncoder({output: (c, m) => muxer.addVideoChunk(c, m), error: e => { err = e; }});
+  venc.configure({codec: vcodec, width: w, height: h, bitrate, framerate: FR});
+  const out = newCanvas(w, h), inkC = newCanvas(w, h), oc = out.getContext('2d'), ic = inkC.getContext('2d');
+  const N = Math.ceil(DUR * FR); let lastFi = -1;
+  for (let i = 0; i < N; i++){
+    const t = i / FR, fi = Math.floor(t * FPS);
+    if (fi !== lastFi){ paintInk(ic, w, h, scale, fi % VARIANTS, false); lastFi = fi; }
+    oc.setTransform(1, 0, 0, 1, 0, 0);
+    oc.fillStyle = 'rgb(' + PAPER.join(',') + ')'; oc.fillRect(0, 0, w, h);
+    oc.drawImage(inkC, 0, 0);
+    paintOverlay(oc, scale, t * 1000, ripples, t <= LOOP ? t / LOOP * W : null);
+    const vf = new VideoFrame(out, {timestamp: Math.round(i * 1e6 / FR), duration: Math.round(1e6 / FR)});
+    venc.encode(vf, {keyFrame: i % 60 === 0}); vf.close();
+    while (venc.encodeQueueSize > 6){ await sleep(4); if (err) throw err; }
+    if (err) throw err;
+    if (i % 12 === 0){ progress('encoding video ' + Math.round(i / N * 100) + '%'); await sleep(0); }
+  }
+  await venc.flush();
+  if (err) throw err;
+  muxer.finalize();
+  return new Blob([muxer.target.buffer], {type: 'video/mp4'});
+}
+
+const menu = $('menu'), saveBtn = $('save'), stat = $('sstat');
+const setStat = t => { stat.textContent = t; };
+function setMenuBusy(on){ menu.querySelectorAll('button').forEach(b => { b.disabled = on; }); }
+function openMenu(){
+  if (!menu.hidden) return closeMenu();
+  menu.hidden = false; saveBtn.setAttribute('aria-expanded', 'true'); setStat('');
+  const b = saveBtn.getBoundingClientRect();
+  menu.style.right = (innerWidth - b.right - 8) + 'px';
+  menu.style.top = (b.bottom - 4) + 'px';
+}
+function closeMenu(){ if (busy) return; menu.hidden = true; saveBtn.setAttribute('aria-expanded', 'false'); }
+const BASE = 'sketch-a-score';
+const say = t => { if (menu.hidden) setNote(t); else setStat(t); };
+function fmtSize(n){ return n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' kb' : (n / 1048576).toFixed(1) + ' mb'; }
+function askExport(blob, kind, base, ext){          // preview pop-up: look at the result, name it, then export or cancel
+  return new Promise(resolve => {
+    const pv = $('pv'), media = $('pvmedia'), inp = $('pvname'), url = URL.createObjectURL(blob);
+    media.textContent = '';
+    const fail = () => { media.textContent = 'preview unavailable here. you can still export.'; media.style.padding = '36px 12px'; };
+    if (kind === 'mp4'){
+      const v = document.createElement('video'); v.src = url; v.loop = true; v.playsInline = true; v.preload = 'auto';
+      v.disablePictureInPicture = true;
+      const pb = document.createElement('button'); pb.type = 'button'; pb.className = 'pvplay'; pb.setAttribute('aria-label', 'Play or pause');
+      pb.innerHTML = '<svg class="hd" viewBox="0 0 40 40" width="40" height="40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M13 8.5 L31.5 20.3 L13.4 32 L12.6 9"/></g><g class="f2"><path d="M12.6 9.2 L31 19.8 L13 31.6 L13.4 8.6"/></g></svg>';
+      const sync = () => { pb.style.display = v.paused ? '' : 'none'; };
+      v.addEventListener('play', sync); v.addEventListener('pause', sync);
+      const toggle = () => { if (v.paused) v.play().catch(() => {}); else v.pause(); };
+      v.addEventListener('click', toggle); pb.addEventListener('click', toggle);
+      v.addEventListener('error', fail); v.addEventListener('loadedmetadata', buildSpine); media.appendChild(v); media.appendChild(pb);
+      v.play().catch(() => {});
+    } else {
+      const im = document.createElement('img'); im.alt = 'export preview'; im.src = url; im.addEventListener('error', fail); im.addEventListener('load', buildSpine); media.appendChild(im);
+    }
+    media.style.padding = '';
+    inp.value = base; $('pvext').textContent = '.' + ext;
+    $('pvinfo').textContent = (kind === 'png' ? 'sketch' : kind === 'gif' ? 'gif' : 'video') + ' \u00b7 ' + fmtSize(blob.size);
+    pv.hidden = false; buildSpine(); inp.focus(); inp.select();
+    const clean = () => {
+      let n = inp.value.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\.(png|gif|mp4|webm)$/i, '').trim().replace(/^\.+/, '');
+      return (n || base) + '.' + ext;
+    };
+    const finish = v => {
+      pv.hidden = true; media.textContent = ''; URL.revokeObjectURL(url);
+      pv.removeEventListener('keydown', onKey); pv.removeEventListener('pointerdown', onBack);
+      $('pvsave').onclick = $('pvcancel').onclick = null; resolve(v);
+    };
+    const onKey = e => { if (e.key === 'Escape'){ e.preventDefault(); finish(null); } else if (e.key === 'Enter' && e.target === inp){ e.preventDefault(); finish(clean()); } };
+    const onBack = e => { if (e.target === pv) finish(null); };
+    pv.addEventListener('keydown', onKey); pv.addEventListener('pointerdown', onBack);
+    $('pvsave').onclick = () => finish(clean()); $('pvcancel').onclick = () => finish(null);
+  });
+}
+async function doSave(kind){
+  if (busy || ptr || !downloads || recording) return;
+  busy = true; setMenuBusy(true);
+  try {
+    let blob, ext;
+    const bar = kind === 'png' ? null : menu.querySelector('[data-save="' + kind + '"]').nextElementSibling;
+    const setBar = f => { if (!bar) return; bar.hidden = false; bar.firstElementChild.style.width = Math.round(clamp(f, 0, 1) * 100) + '%'; };
+    if (kind === 'png'){ blob = await exportPNG(); ext = 'png'; }
+    else if (kind === 'gif'){ setBar(0.02); blob = await exportGIF(p => setBar(p)); ext = 'gif'; }
+    else { setBar(0.02); blob = await exportMP4(m => { const q = /(\d+)%/.exec(m); setBar(q ? 0.12 + 0.88 * q[1] / 100 : /sound/.test(m) ? 0.06 : 0.03); }); ext = 'mp4'; }
+    setBar(1);
+    setStat(''); busy = false; setMenuBusy(false); closeMenu();
+    const name = await askExport(blob, kind, BASE, ext);
+    if (!name) return;
+    busy = true;
+    await downloads.save({filename: name, data: blob});
+    setNote('saved ' + name);
+  } catch (e){
+    const code = e && e.code;
+    if (code === 'declined') say('');
+    else if (code === 'nosupport') say('this browser cannot encode mp4 with sound. try chrome or safari, or save a gif.');
+    else if (code === 'muxer') say('could not load the video packer. check your connection and try again.');
+    else if (code === 'too_large') say('that file is too large to save here. try the gif or png.');
+    else { console.error(e); say('that did not work. try again, or pick another format.'); }
+  } finally { busy = false; setMenuBusy(false); menu.querySelectorAll('.pbar').forEach(b => { b.hidden = true; b.firstElementChild.style.width = '0'; }); }
+}
+saveBtn.addEventListener('click', openMenu);
+menu.querySelectorAll('[data-save]').forEach(b => b.addEventListener('click', () => doSave(b.dataset.save)));
+document.addEventListener('pointerdown', e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== saveBtn) closeMenu(); });
+addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+/* ---------- recording the page as you sketch ---------- */
+const recBtn = $('rec'), recTime = $('rtime'), note = $('rnote');
+let recording = null, noteTimer = 0;
+const canRecord = !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream);
+function setNote(t, ms = 6000){ note.textContent = t; clearTimeout(noteTimer); if (t) noteTimer = setTimeout(() => { note.textContent = ''; }, ms); }
+function recMime(){
+  const c = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4',
+             'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  return c.find(m => MediaRecorder.isTypeSupported(m)) || '';
+}
+function recFrame(){
+  const r = recording; if (!r) return;
+  r.ctx.fillStyle = 'rgb(' + PAPER.join(',') + ')'; r.ctx.fillRect(0, 0, r.w, r.h);
+  r.ctx.drawImage(cv, 0, 0, r.w, r.h); r.ctx.drawImage(ov, 0, 0, r.w, r.h);
+  const sec = Math.floor((performance.now() - r.t0) / 1000);
+  recTime.textContent = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  if (sec >= 600) stopRecording();
+}
+function startRecording(){
+  if (recording || busy || !downloads) return;
+  initAudio(); resumeAudio(); closeMenu();
+  const mime = recMime(), {w, h} = fitSize(1280), canvas = newCanvas(w, h), ctx2 = canvas.getContext('2d');
+  const stream = canvas.captureStream(30);
+  let tap = null;
+  if (AC && outNode && AC.createMediaStreamDestination){
+    tap = AC.createMediaStreamDestination(); outNode.connect(tap);
+    tap.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+  }
+  const opts = {videoBitsPerSecond: Math.round(w * h * 30 * 0.1), audioBitsPerSecond: 128000};
+  if (mime) opts.mimeType = mime;
+  let mr;
+  try { mr = new MediaRecorder(stream, opts); }
+  catch (e){ if (tap) try { outNode.disconnect(tap); } catch (_) {} setNote('recording is not supported in this browser.'); return; }
+  const chunks = [], ext = ((mr.mimeType || mime).indexOf('mp4') >= 0) ? 'mp4' : 'webm';
+  const r = recording = {mr, chunks, canvas, ctx: ctx2, w, h, t0: performance.now(), tap, ext};
+  mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  mr.onstop = () => finishRecording(r);
+  recFrame();
+  mr.start(1000);
+  recBtn.setAttribute('aria-pressed', 'true'); recBtn.setAttribute('aria-label', 'Stop recording');
+  setNote('');
+}
+function stopRecording(){
+  const r = recording; if (!r) return;
+  recording = null;
+  recBtn.setAttribute('aria-pressed', 'false'); recBtn.setAttribute('aria-label', 'Record the page'); recTime.textContent = '';
+  try { r.mr.stop(); } catch (_) { finishRecording(r); }
+}
+async function finishRecording(r){
+  if (r.tap) try { outNode.disconnect(r.tap); } catch (_) {}
+  if (!r.chunks.length){ setNote('nothing was recorded. try again.'); return; }
+  const blob = new Blob(r.chunks, {type: r.mr.mimeType || ('video/' + r.ext)});
+  const name = await askExport(blob, 'mp4', BASE + '-recording', r.ext);
+  if (!name){ setNote(''); return; }
+  try {
+    await downloads.save({filename: name, data: blob});
+    setNote('saved ' + name);
+  } catch (e){
+    const code = e && e.code;
+    if (code === 'declined') setNote('');
+    else if (code === 'too_large') setNote('that recording is too large to save here. try a shorter one.');
+    else { console.error(e); setNote('could not save the recording. try again.'); }
+  }
+}
+recBtn.addEventListener('click', () => { recording ? stopRecording() : startRecording(); });
+downloads = {save: ({filename, data}) => new Promise(res => {      // a normal browser download
+  const url = URL.createObjectURL(data), a = document.createElement('a');
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000); res();
+})};
+$('dl').hidden = false; if (!canRecord) recBtn.hidden = true;
+
+/* ---------- starting sheet ---------- */
+function seedDrawing(){
+  const X = f => W * f, Y = f => H * f, U = Math.min(W, H);
+  let s = newStroke('line', 101), poly = [];
+  for (let i = 0; i <= 40; i++){ const u = i / 40; poly.push({x: X(0.08 + 0.4 * u), y: Y(0.64 - 0.22 * u) + Math.sin(u * 8.5) * Y(0.04)}); }
+  s.pts = resample(poly, 5); commit(s);
+  s = newStroke('circle', 202); s.pts = [{x: X(0.3), y: Y(0.28)}]; s.r = U * 0.1; commit(s);
+  s = newStroke('circle', 203); s.pts = [{x: X(0.3) + U * 0.14, y: Y(0.28) + U * 0.03}]; s.r = U * 0.085; commit(s);
+  [[0.17, 0.3], [0.2, 0.42], [0.43, 0.8], [0.58, 0.52], [0.87, 0.46], [0.93, 0.3]].forEach(([a, b], i) => {
+    const d = newStroke('dot', 300 + i); d.pts = [{x: X(a), y: Y(b)}]; commit(d);
+  });
+  s = newStroke('flower', 404); s.pts = [{x: X(0.72), y: Y(0.3)}]; s.r = U * 0.12; s.ang = -1.2; commit(s);
+  s = newStroke('star', 606); s.pts = [{x: X(0.12), y: Y(0.8)}]; s.r = U * 0.08; s.ang = 0.4; commit(s);
+  poly = [];
+  for (let i = 0; i <= 30; i++){ const u = i / 30; poly.push({x: X(0.46 + 0.44 * u), y: Y(0.74 - 0.1 * u) - Math.sin(u * Math.PI) * Y(0.08)}); }
+  s = newStroke('rake', 505); s.pts = resample(poly, 5.5); commit(s);
+}
+
+/* ---------- loop ---------- */
+function resize(){
+  W = innerWidth; H = innerHeight; DPR = Math.min(window.devicePixelRatio || 1, 2);
+  if (W * H * DPR * DPR > 3.2e6) DPR = Math.max(1, Math.sqrt(3.2e6 / (W * H)));   // keep big screens light
+  cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
+  ov.width = W; ov.height = H;                                                    // overlay is thin and soft: 1x is enough
+  for (const c of [cv, ov]){ c.style.width = W + 'px'; c.style.height = H + 'px'; }
+  dirty = true;
+}
+let lastFi = -1, lastDraw = 0;
+function loop(now){
+  requestAnimationFrame(loop);
+  if (ptr){
+    ptr.speed *= 0.94;
+    if (ptr.mode === 'circle'){
+      const held = (performance.now() - ptr.holdStart) / 1000;
+      ptr.s.r = Math.min(R_MAX(), 8 + 95 * Math.pow(held, 0.92)); ptr.s.paths = null; circleVer++;
+      if (ptr.pad) padUpdate(ptr.pad, ptr.s.r / R_MAX());
+      dirty = true;
+    }
+    else if (ptr.mode === 'shape' && ptr.growing){
+      const held = (performance.now() - ptr.holdStart) / 1000;
+      ptr.s.r = Math.min(R_MAX() * 0.8, 8 + 95 * Math.pow(held, 0.92)); ptr.s.paths = null; circleVer++;
+      if (ptr.pad) padUpdate(ptr.pad, ptr.s.r / R_MAX());
+      dirty = true;
+    }
+    if (ptr.voice) voiceUpdate(ptr);
+  }
+  const fi = Math.floor(now / 1000 * FPS);
+  if (fi !== lastFi || (dirty && now - lastDraw > (ptr ? 30 : 0))){
+    renderInk(fi % VARIANTS); lastFi = fi; lastDraw = now; dirty = false;
+  }
+  stepScan(now);
+  drawOverlay(now);
+  if (recording) recFrame();
+}
+resize();
+lastPx = W * 0.2;
+makeGrain();
+if (!restore()) seedDrawing();
+addEventListener('resize', resize);
+if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+requestAnimationFrame(loop);
+})();
+
+(function(){                                  // the cursor boils too: two hand-drawn frames, swapped like the icons
+  const mk = (d, tf) => 'url("data:image/svg+xml,' + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22'><g transform='" + tf + "'><path d='" + d + "' fill='none' stroke='#2f2f34' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></g><circle cx='11' cy='11' r='1.2' fill='#2f2f34'/></svg>") + '") 11 11, crosshair';
+  const A = mk('M11.2 3.9 C14.6 3.7 18.2 6.9 18 11 C17.8 14.9 14.7 18.2 10.8 18 C7.1 17.8 3.9 14.6 4.1 10.9 C4.3 7.2 7.3 4.1 11 4.1 L12 4.3', 'translate(-0.2 0.15) rotate(-2.5 11 11)');
+  const B = mk('M10.8 4.2 C14.5 4.1 17.8 7.3 17.7 11.2 C17.6 14.8 14.3 17.8 10.6 17.7 C7 17.9 4.3 14.8 4.3 11.3 C4.1 7.5 7.6 4.4 11.3 3.8 L12.2 4', 'translate(0.25 -0.2) rotate(3 11 11)');
+  const st = document.getElementById('stage'); let f = 0;
+  if (!st) return;
+  st.style.cursor = A;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+  setInterval(() => { f ^= 1; st.style.cursor = f ? B : A; }, 275);
+})();
+</script>
+</body>
+</html>
