@@ -36,7 +36,11 @@ body{font-family:var(--font-ui)}
   cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Ccircle cx='11' cy='11' r='7' fill='none' stroke='%232f2f34' stroke-width='1.3'/%3E%3Ccircle cx='11' cy='11' r='1.2' fill='%232f2f34'/%3E%3C/svg%3E") 11 11,crosshair}
 #stage canvas{position:absolute;inset:0;display:block}
 #o{pointer-events:none}
-.mark{position:fixed;top:16px;left:16px;right:16px;pointer-events:none;display:flex;flex-direction:column;gap:6px;max-width:44ch}
+#scale{position:fixed;left:0;top:0;width:40px;height:100%;pointer-events:none;z-index:1}
+#scale i{position:absolute;left:0;width:40px;display:flex;align-items:center;padding-left:9px;box-sizing:border-box;font-style:normal;font-size:10px;letter-spacing:.04em;color:var(--char-soft);opacity:.75}
+#scale i::before{content:"";position:absolute;left:0;top:0;width:6px;border-top:1px solid rgba(47,47,52,.35)}
+#scale i.d{color:var(--char);opacity:1}
+.mark{position:fixed;top:16px;left:48px;right:16px;pointer-events:none;display:flex;flex-direction:column;gap:6px;max-width:44ch}
 .mark h1{margin:0;font-weight:400;font-size:13px;letter-spacing:.1em;text-transform:lowercase}
 .mark p{margin:0;font-size:12px;line-height:1.5;font-weight:300;color:var(--char-soft)}
 .mark p+p{font-style:italic}
@@ -50,7 +54,10 @@ body{font-family:var(--font-ui)}
 .bar button{background:none;border:0;margin:0;padding:8px 2px;font:inherit;letter-spacing:inherit;color:var(--char);cursor:pointer;
   text-underline-offset:5px;text-decoration-thickness:1px}
 .bar button:hover{text-decoration:underline}
-#undo svg,#redo svg,#snd svg{display:block}
+#undo svg,#redo svg,#snd svg,#scan svg{display:block}
+.bar #scan[aria-pressed="false"]{text-decoration:none}
+#scan .sq,#scan[aria-pressed="false"] .tri{display:none!important}
+#scan[aria-pressed="false"] .sq{display:inline!important}
 .bar #snd,.bar #snd[aria-pressed="false"]{color:var(--char);text-decoration:none}
 #redo{margin-left:-10px}
 #undo:hover,#redo:hover{text-decoration:none}
@@ -157,8 +164,9 @@ body{font-family:var(--font-ui)}
 #dl{display:flex;flex-direction:column;align-items:flex-end}
 #dl[hidden]{display:none}
 #grid{position:fixed;inset:0;pointer-events:none;
-  background-image:linear-gradient(to right,rgba(47,47,52,.1) 1px,transparent 1px),linear-gradient(to bottom,rgba(47,47,52,.1) 1px,transparent 1px);
-  background-size:32px 32px}
+  background-image:linear-gradient(to right,rgba(47,47,52,.1) 1px,transparent 1px);
+  background-size:32px 100%}
+#grid i{position:absolute;left:0;right:0;height:1px;background:rgba(47,47,52,.1)}
 #rec .inner{fill:none}
 #rec[aria-pressed="true"] .inner{fill:currentColor;animation:recpulse 1.6s ease-in-out infinite}
 @keyframes recpulse{50%{opacity:.3}}
@@ -183,6 +191,7 @@ body{font-family:var(--font-ui)}
   <canvas id="o" aria-hidden="true"></canvas>
 </div>
 <div id="grid" hidden aria-hidden="true"></div>
+<div id="scale" aria-hidden="true"></div>
 
 <header class="mark">
   <h1>sketch-a-score</h1>
@@ -201,7 +210,7 @@ body{font-family:var(--font-ui)}
   <button id="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M17.7 20.5 C13 21.2 7.4 20.9 4.4 17.6 C1.8 15.6 1.8 10.6 4.6 8.6 C6.2 6.9 11 6.4 15.9 6.6 L19.1 6.8"/><path d="M10.7 1.3 L19.1 6.8 L10.9 11.1"/></g></g><g class="f2"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M17.5 20.3 C12.8 21 7.6 21.1 4.5 17.8 C1.7 15.4 1.7 10.4 4.7 8.4 C6.4 6.6 10.9 6.6 15.8 6.4 L18.9 6.9"/><path d="M10.5 1.5 L18.9 6.9 L11 10.9"/></g></g></svg></button>
   <button id="clear" title="Clear the page">clear</button>
   <span class="sep"></span>
-  <button class="tog" id="scan" aria-pressed="true" title="Sweep and play the page (Space)">scan</button>
+  <button class="tog" id="scan" aria-pressed="true" aria-label="Play" title="Play and stop (Space)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1 tri"><path d="M7 4.6 L17.6 11.1 L7.2 17.6 L6.8 4.9"/></g><g class="f2 tri"><path d="M6.8 4.9 L17.2 10.9 L6.9 17.4 L7.2 4.6"/></g><g class="f1 sq"><path d="M5.9 5.6 L16.3 5.3 L16.6 16.4 L5.6 16.7 L5.9 5.8"/></g><g class="f2 sq"><path d="M5.6 5.3 L16.6 5.8 L16.2 16.7 L5.9 16.4 L5.7 5.5"/></g></svg></button>
   <button class="tog" id="snd" aria-pressed="true" aria-label="Sound" title="Sound on or off"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g class="on"><path d="M2.6 8.1 L6.2 7.8 L10.4 3.8 L10.1 18.2 L6.1 14.2 L2.7 14.1 L2.5 8.3"/><path d="M13.2 7.6 Q15.5 11 13.1 14.6"/><path d="M15.9 4.7 Q20 11.1 16 17.4"/></g><g class="mut"><path d="M2.6 8.1 L3.1 8.1 L3.5 8.0 L4.0 8.0 L4.4 7.9 L4.8 7.9 L5.3 7.9 L5.8 7.8 L6.2 7.8 L6.5 7.5 L6.9 7.1 L7.2 6.8 L7.6 6.5 L8.0 6.1 L8.3 5.8 L8.7 5.5 L9.0 5.1 L9.4 4.8 L9.7 4.5 L10.1 4.1 L10.4 3.8 L10.4 4.2 L10.4 4.7 L10.4 5.1 L10.4 5.6 L10.4 6.0 L10.3 6.5 L10.3 6.9 L10.3 7.4 L10.3 7.8 L10.3 8.3 L10.3 8.8"/><path d="M10.2 15.0 L10.2 15.5 L10.1 15.9 L10.1 16.4 L10.1 16.8 L10.1 17.3 L10.1 17.8 L10.1 18.2 L9.8 17.9 L9.4 17.5 L9.1 17.2 L8.8 16.9 L8.4 16.5"/><path d="M4.6 14.2 L4.2 14.1 L3.7 14.1 L3.2 14.1 L2.7 14.1 L2.7 13.6 L2.7 13.1 L2.7 12.7 L2.6 12.2 L2.6 11.7 L2.6 11.2 L2.6 10.7 L2.6 10.2 L2.5 9.8 L2.5 9.3 L2.5 8.8 L2.5 8.3"/><path d="M14.3 10.9 L14.3 11.1 L14.3 11.2 L14.3 11.4 L14.3 11.6 L14.3 11.8 L14.2 11.9 L14.2 12.1 L14.2 12.3 L14.1 12.5 L14.1 12.6 L14.0 12.8 L13.9 13.0 L13.9 13.2 L13.8 13.3 L13.7 13.5 L13.6 13.7 L13.5 13.9 L13.4 14.1 L13.3 14.2 L13.2 14.4 L13.1 14.6"/><path d="M17.4 7.9 L17.5 8.2 L17.6 8.5 L17.7 8.8 L17.8 9.2 L17.8 9.5 L17.9 9.8 L17.9 10.1 L17.9 10.4 L18.0 10.8 L18.0 11.1 L18.0 11.4 L18.0 11.7 L17.9 12.0 L17.9 12.3 L17.9 12.7 L17.8 13.0 L17.7 13.3 L17.7 13.6 L17.6 13.9 L17.5 14.2 L17.4 14.6 L17.3 14.9 L17.2 15.2 L17.0 15.5 L16.9 15.8 L16.7 16.1 L16.6 16.5 L16.4 16.8 L16.2 17.1 L16.0 17.4"/><path d="M2.4 19.2 L19.6 2.9"/></g></g><g class="f2"><g class="on"><path d="M2.9 7.9 L6.5 8.2 L10.1 3.6 L10.4 18 L6.4 14.5 L2.5 14.3 L2.8 7.8"/><path d="M13.5 7.8 Q15.8 11.2 13.4 14.4"/><path d="M16.2 4.9 Q20.3 10.9 15.8 17.2"/></g><g class="mut"><path d="M2.9 7.9 L3.4 7.9 L3.8 8.0 L4.2 8.0 L4.7 8.1 L5.2 8.1 L5.6 8.1 L6.0 8.2 L6.5 8.2 L6.8 7.8 L7.1 7.4 L7.4 7.0 L7.7 6.7 L8.0 6.3 L8.3 5.9 L8.6 5.5 L8.9 5.1 L9.2 4.8 L9.5 4.4 L9.8 4.0 L10.1 3.6 L10.1 4.0 L10.1 4.5 L10.1 5.0 L10.1 5.4 L10.1 5.8 L10.2 6.3 L10.2 6.8 L10.2 7.2 L10.2 7.7 L10.2 8.1 L10.2 8.6 L10.2 9.0"/><path d="M10.3 14.8 L10.3 15.3 L10.4 15.8 L10.4 16.2 L10.4 16.7 L10.4 17.1 L10.4 17.6 L10.4 18.0 L10.0 17.7 L9.7 17.4 L9.3 17.0 L8.9 16.7 L8.6 16.4"/><path d="M4.5 14.4 L4.0 14.4 L3.5 14.4 L3.0 14.3 L2.5 14.3 L2.5 13.8 L2.5 13.4 L2.6 12.9 L2.6 12.4 L2.6 12.0 L2.6 11.5 L2.6 11.1 L2.7 10.6 L2.7 10.1 L2.7 9.7 L2.7 9.2 L2.8 8.7 L2.8 8.3 L2.8 7.8"/><path d="M14.6 11.0 L14.6 11.2 L14.6 11.3 L14.6 11.5 L14.6 11.6 L14.6 11.8 L14.5 12.0 L14.5 12.1 L14.5 12.3 L14.4 12.5 L14.4 12.6 L14.3 12.8 L14.2 12.9 L14.2 13.1 L14.1 13.3 L14.0 13.4 L13.9 13.6 L13.8 13.8 L13.7 13.9 L13.6 14.1 L13.5 14.2 L13.4 14.4"/><path d="M17.8 8.2 L17.9 8.5 L18.0 8.8 L18.0 9.1 L18.1 9.4 L18.1 9.7 L18.1 10.1 L18.1 10.4 L18.2 10.7 L18.1 11.0 L18.1 11.3 L18.1 11.6 L18.1 11.9 L18.0 12.2 L18.0 12.5 L17.9 12.8 L17.8 13.1 L17.7 13.4 L17.6 13.8 L17.5 14.1 L17.4 14.4 L17.3 14.7 L17.1 15.0 L17.0 15.3 L16.8 15.6 L16.6 15.9 L16.4 16.3 L16.2 16.6 L16.0 16.9 L15.8 17.2"/><path d="M2.8 18.8 L19.8 3.3"/></g></g></svg></button>
 </nav>
 
@@ -890,12 +899,11 @@ function sweepVoice(ev, t){                  // one bowed, cello-like voice; pit
   }
   let sm = ys;                                   // light smoothing, then snap to the scale with hysteresis so notes hold
   { const n2 = new Float32Array(N); for (let i = 0; i < N; i++) n2[i] = (sm[Math.max(0, i - 1)] + sm[i] + sm[Math.min(N - 1, i + 1)]) / 3; sm = n2; }
-  const snap = m => { let best = m, bd = 1e9; for (let o = -3; o <= 6; o++) for (const d of SCALE){ const c = ROOT + o * 12 + d, e = Math.abs(c - m); if (e < bd){ bd = e; best = c; } } return best; };
   const f = new Float32Array(N); let cur = null;
   for (let i = 0; i < N; i++){
-    const m = 38 + (1 - clamp(sm[i] / H, 0, 1)) * 31;
-    if (cur === null || Math.abs(m - cur) > 1.6) cur = snap(m);
-    f[i] = mtof(cur);
+    const g = (1 - clamp(sm[i] / H, 0, 1)) * NOTES;                // same bands as the scale on the left
+    if (cur === null || g < cur - 0.2 || g > cur + 1.2) cur = Math.min(NOTES - 1, Math.floor(g));
+    f[i] = fq(cur);
   }
   const fmid = f[N >> 1];
   const out = AC.createGain();
@@ -1613,13 +1621,26 @@ function seedDrawing(){
 }
 
 /* ---------- loop ---------- */
+const NN = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+function buildScale(){                         // note names down the left edge, one row per pitch band
+  const el = $('scale'); el.textContent = '';
+  for (let i = 0; i < NOTES; i++){
+    const m = idxToMidi(i), d = document.createElement('i');
+    d.textContent = NN[m % 12] + (Math.floor(m / 12) - 1);
+    d.style.top = (H * (1 - (i + 1) / NOTES)) + 'px'; d.style.height = (H / NOTES) + 'px';
+    if (m % 12 === 2) d.className = 'd';
+    el.appendChild(d);
+  }
+  const gr = $('grid'); gr.textContent = '';                         // grid rows sit on the pitch-band edges
+  for (let i = 1; i < NOTES; i++){ const l = document.createElement('i'); l.style.top = Math.round(H * i / NOTES) + 'px'; gr.appendChild(l); }
+}
 function resize(){
   W = innerWidth; H = innerHeight; DPR = Math.min(window.devicePixelRatio || 1, 2);
   if (W * H * DPR * DPR > 3.2e6) DPR = Math.max(1, Math.sqrt(3.2e6 / (W * H)));   // keep big screens light
   cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
   ov.width = W; ov.height = H;                                                    // overlay is thin and soft: 1x is enough
   for (const c of [cv, ov]){ c.style.width = W + 'px'; c.style.height = H + 'px'; }
-  dirty = true;
+  buildScale(); dirty = true;
 }
 let lastFi = -1, lastDraw = 0;
 function loop(now){
