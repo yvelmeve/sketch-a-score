@@ -143,8 +143,11 @@ body{font-family:var(--font-ui)}
 .bkview{display:flex;flex-direction:column;align-items:stretch;gap:6px;height:100%}
 .bkview .bkmedia{flex:1;min-height:0}
 .bkmedia.pvmedia img,.bkmedia.pvmedia video{max-height:min(470px,calc(100vh - 230px))}
-.bkbar{display:flex;justify-content:flex-end;margin-top:auto}
-.bkinfo{margin:0;text-align:center;font-size:12px;font-weight:300;color:var(--char-soft)}
+.bkbar{display:flex;justify-content:flex-end}
+.bkname{background:none;border:0;margin:0;padding:0;font:inherit;letter-spacing:inherit;color:inherit;cursor:text;border-bottom:1px dashed transparent}
+.bkname:hover,.bkname:focus-visible{border-bottom-color:var(--char-faint);outline:none}
+.bkedit{font:inherit;letter-spacing:inherit;color:var(--char);background:none;border:0;border-bottom:1px solid var(--char-soft);outline:none;padding:0;margin:0;text-align:center;width:min(240px,60vw)}
+.bkinfo{margin:auto 0;text-align:center;font-size:12px;font-weight:300;color:var(--char-soft)}
 .bkbtns{display:flex;gap:22px;align-items:center}
 .bkbtns button svg{display:block}
 #bkbtn[hidden]{display:none}
@@ -199,6 +202,9 @@ body{font-family:var(--font-ui)}
 </header>
 
 <nav class="bar" aria-label="Tools">
+  <button class="tog" id="snd" aria-pressed="true" aria-label="Sound" title="Sound on or off"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g class="on"><path d="M2.6 8.1 L6.2 7.8 L10.4 3.8 L10.1 18.2 L6.1 14.2 L2.7 14.1 L2.5 8.3"/><path d="M13.2 7.6 Q15.5 11 13.1 14.6"/><path d="M15.9 4.7 Q20 11.1 16 17.4"/></g><g class="mut"><path d="M2.6 8.1 L3.1 8.1 L3.5 8.0 L4.0 8.0 L4.4 7.9 L4.8 7.9 L5.3 7.9 L5.8 7.8 L6.2 7.8 L6.5 7.5 L6.9 7.1 L7.2 6.8 L7.6 6.5 L8.0 6.1 L8.3 5.8 L8.7 5.5 L9.0 5.1 L9.4 4.8 L9.7 4.5 L10.1 4.1 L10.4 3.8 L10.4 4.2 L10.4 4.7 L10.4 5.1 L10.4 5.6 L10.4 6.0 L10.3 6.5 L10.3 6.9 L10.3 7.4 L10.3 7.8 L10.3 8.3 L10.3 8.8"/><path d="M10.2 15.0 L10.2 15.5 L10.1 15.9 L10.1 16.4 L10.1 16.8 L10.1 17.3 L10.1 17.8 L10.1 18.2 L9.8 17.9 L9.4 17.5 L9.1 17.2 L8.8 16.9 L8.4 16.5"/><path d="M4.6 14.2 L4.2 14.1 L3.7 14.1 L3.2 14.1 L2.7 14.1 L2.7 13.6 L2.7 13.1 L2.7 12.7 L2.6 12.2 L2.6 11.7 L2.6 11.2 L2.6 10.7 L2.6 10.2 L2.5 9.8 L2.5 9.3 L2.5 8.8 L2.5 8.3"/><path d="M14.3 10.9 L14.3 11.1 L14.3 11.2 L14.3 11.4 L14.3 11.6 L14.3 11.8 L14.2 11.9 L14.2 12.1 L14.2 12.3 L14.1 12.5 L14.1 12.6 L14.0 12.8 L13.9 13.0 L13.9 13.2 L13.8 13.3 L13.7 13.5 L13.6 13.7 L13.5 13.9 L13.4 14.1 L13.3 14.2 L13.2 14.4 L13.1 14.6"/><path d="M17.4 7.9 L17.5 8.2 L17.6 8.5 L17.7 8.8 L17.8 9.2 L17.8 9.5 L17.9 9.8 L17.9 10.1 L17.9 10.4 L18.0 10.8 L18.0 11.1 L18.0 11.4 L18.0 11.7 L17.9 12.0 L17.9 12.3 L17.9 12.7 L17.8 13.0 L17.7 13.3 L17.7 13.6 L17.6 13.9 L17.5 14.2 L17.4 14.6 L17.3 14.9 L17.2 15.2 L17.0 15.5 L16.9 15.8 L16.7 16.1 L16.6 16.5 L16.4 16.8 L16.2 17.1 L16.0 17.4"/><path d="M2.4 19.2 L19.6 2.9"/></g></g><g class="f2"><g class="on"><path d="M2.9 7.9 L6.5 8.2 L10.1 3.6 L10.4 18 L6.4 14.5 L2.5 14.3 L2.8 7.8"/><path d="M13.5 7.8 Q15.8 11.2 13.4 14.4"/><path d="M16.2 4.9 Q20.3 10.9 15.8 17.2"/></g><g class="mut"><path d="M2.9 7.9 L3.4 7.9 L3.8 8.0 L4.2 8.0 L4.7 8.1 L5.2 8.1 L5.6 8.1 L6.0 8.2 L6.5 8.2 L6.8 7.8 L7.1 7.4 L7.4 7.0 L7.7 6.7 L8.0 6.3 L8.3 5.9 L8.6 5.5 L8.9 5.1 L9.2 4.8 L9.5 4.4 L9.8 4.0 L10.1 3.6 L10.1 4.0 L10.1 4.5 L10.1 5.0 L10.1 5.4 L10.1 5.8 L10.2 6.3 L10.2 6.8 L10.2 7.2 L10.2 7.7 L10.2 8.1 L10.2 8.6 L10.2 9.0"/><path d="M10.3 14.8 L10.3 15.3 L10.4 15.8 L10.4 16.2 L10.4 16.7 L10.4 17.1 L10.4 17.6 L10.4 18.0 L10.0 17.7 L9.7 17.4 L9.3 17.0 L8.9 16.7 L8.6 16.4"/><path d="M4.5 14.4 L4.0 14.4 L3.5 14.4 L3.0 14.3 L2.5 14.3 L2.5 13.8 L2.5 13.4 L2.6 12.9 L2.6 12.4 L2.6 12.0 L2.6 11.5 L2.6 11.1 L2.7 10.6 L2.7 10.1 L2.7 9.7 L2.7 9.2 L2.8 8.7 L2.8 8.3 L2.8 7.8"/><path d="M14.6 11.0 L14.6 11.2 L14.6 11.3 L14.6 11.5 L14.6 11.6 L14.6 11.8 L14.5 12.0 L14.5 12.1 L14.5 12.3 L14.4 12.5 L14.4 12.6 L14.3 12.8 L14.2 12.9 L14.2 13.1 L14.1 13.3 L14.0 13.4 L13.9 13.6 L13.8 13.8 L13.7 13.9 L13.6 14.1 L13.5 14.2 L13.4 14.4"/><path d="M17.8 8.2 L17.9 8.5 L18.0 8.8 L18.0 9.1 L18.1 9.4 L18.1 9.7 L18.1 10.1 L18.1 10.4 L18.2 10.7 L18.1 11.0 L18.1 11.3 L18.1 11.6 L18.1 11.9 L18.0 12.2 L18.0 12.5 L17.9 12.8 L17.8 13.1 L17.7 13.4 L17.6 13.8 L17.5 14.1 L17.4 14.4 L17.3 14.7 L17.1 15.0 L17.0 15.3 L16.8 15.6 L16.6 15.9 L16.4 16.3 L16.2 16.6 L16.0 16.9 L15.8 17.2"/><path d="M2.8 18.8 L19.8 3.3"/></g></g></svg></button>
+  <button class="tog" id="scan" aria-pressed="true" aria-label="Play" title="Play and stop (Space)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1 tri"><path d="M7 4.6 L17.6 11.1 L7.2 17.6 L6.8 4.9"/></g><g class="f2 tri"><path d="M6.8 4.9 L17.2 10.9 L6.9 17.4 L7.2 4.6"/></g><g class="f1 sq"><path d="M5.9 5.6 L16.3 5.3 L16.6 16.4 L5.6 16.7 L5.9 5.8"/></g><g class="f2 sq"><path d="M5.6 5.3 L16.6 5.8 L16.2 16.7 L5.9 16.4 L5.7 5.5"/></g></svg></button>
+  <span class="sep"></span>
   <div class="grp">
     <button class="tool" id="t-draw" data-tool="draw" aria-pressed="true" title="Draw (D)">draw</button>
     <button class="tool" id="t-rake" data-tool="rake" aria-pressed="false" title="Rake (R)">rake</button>
@@ -209,9 +215,6 @@ body{font-family:var(--font-ui)}
   <button id="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M4.3 20.5 C9 21.2 14.6 20.9 17.6 17.6 C20.2 15.6 20.2 10.6 17.4 8.6 C15.8 6.9 11 6.4 6.1 6.6 L2.9 6.8"/><path d="M11.3 1.3 L2.9 6.8 L11.1 11.1"/></g></g><g class="f2"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M4.5 20.3 C9.2 21 14.4 21.1 17.5 17.8 C20.3 15.4 20.3 10.4 17.3 8.4 C15.6 6.6 11.1 6.6 6.2 6.4 L3.1 6.9"/><path d="M11.5 1.5 L3.1 6.9 L11 10.9"/></g></g></svg></button>
   <button id="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M17.7 20.5 C13 21.2 7.4 20.9 4.4 17.6 C1.8 15.6 1.8 10.6 4.6 8.6 C6.2 6.9 11 6.4 15.9 6.6 L19.1 6.8"/><path d="M10.7 1.3 L19.1 6.8 L10.9 11.1"/></g></g><g class="f2"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M17.5 20.3 C12.8 21 7.6 21.1 4.5 17.8 C1.7 15.4 1.7 10.4 4.7 8.4 C6.4 6.6 10.9 6.6 15.8 6.4 L18.9 6.9"/><path d="M10.5 1.5 L18.9 6.9 L11 10.9"/></g></g></svg></button>
   <button id="clear" title="Clear the page">clear</button>
-  <span class="sep"></span>
-  <button class="tog" id="scan" aria-pressed="true" aria-label="Play" title="Play and stop (Space)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1 tri"><path d="M7 4.6 L17.6 11.1 L7.2 17.6 L6.8 4.9"/></g><g class="f2 tri"><path d="M6.8 4.9 L17.2 10.9 L6.9 17.4 L7.2 4.6"/></g><g class="f1 sq"><path d="M5.9 5.6 L16.3 5.3 L16.6 16.4 L5.6 16.7 L5.9 5.8"/></g><g class="f2 sq"><path d="M5.6 5.3 L16.6 5.8 L16.2 16.7 L5.9 16.4 L5.7 5.5"/></g></svg></button>
-  <button class="tog" id="snd" aria-pressed="true" aria-label="Sound" title="Sound on or off"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g class="on"><path d="M2.6 8.1 L6.2 7.8 L10.4 3.8 L10.1 18.2 L6.1 14.2 L2.7 14.1 L2.5 8.3"/><path d="M13.2 7.6 Q15.5 11 13.1 14.6"/><path d="M15.9 4.7 Q20 11.1 16 17.4"/></g><g class="mut"><path d="M2.6 8.1 L3.1 8.1 L3.5 8.0 L4.0 8.0 L4.4 7.9 L4.8 7.9 L5.3 7.9 L5.8 7.8 L6.2 7.8 L6.5 7.5 L6.9 7.1 L7.2 6.8 L7.6 6.5 L8.0 6.1 L8.3 5.8 L8.7 5.5 L9.0 5.1 L9.4 4.8 L9.7 4.5 L10.1 4.1 L10.4 3.8 L10.4 4.2 L10.4 4.7 L10.4 5.1 L10.4 5.6 L10.4 6.0 L10.3 6.5 L10.3 6.9 L10.3 7.4 L10.3 7.8 L10.3 8.3 L10.3 8.8"/><path d="M10.2 15.0 L10.2 15.5 L10.1 15.9 L10.1 16.4 L10.1 16.8 L10.1 17.3 L10.1 17.8 L10.1 18.2 L9.8 17.9 L9.4 17.5 L9.1 17.2 L8.8 16.9 L8.4 16.5"/><path d="M4.6 14.2 L4.2 14.1 L3.7 14.1 L3.2 14.1 L2.7 14.1 L2.7 13.6 L2.7 13.1 L2.7 12.7 L2.6 12.2 L2.6 11.7 L2.6 11.2 L2.6 10.7 L2.6 10.2 L2.5 9.8 L2.5 9.3 L2.5 8.8 L2.5 8.3"/><path d="M14.3 10.9 L14.3 11.1 L14.3 11.2 L14.3 11.4 L14.3 11.6 L14.3 11.8 L14.2 11.9 L14.2 12.1 L14.2 12.3 L14.1 12.5 L14.1 12.6 L14.0 12.8 L13.9 13.0 L13.9 13.2 L13.8 13.3 L13.7 13.5 L13.6 13.7 L13.5 13.9 L13.4 14.1 L13.3 14.2 L13.2 14.4 L13.1 14.6"/><path d="M17.4 7.9 L17.5 8.2 L17.6 8.5 L17.7 8.8 L17.8 9.2 L17.8 9.5 L17.9 9.8 L17.9 10.1 L17.9 10.4 L18.0 10.8 L18.0 11.1 L18.0 11.4 L18.0 11.7 L17.9 12.0 L17.9 12.3 L17.9 12.7 L17.8 13.0 L17.7 13.3 L17.7 13.6 L17.6 13.9 L17.5 14.2 L17.4 14.6 L17.3 14.9 L17.2 15.2 L17.0 15.5 L16.9 15.8 L16.7 16.1 L16.6 16.5 L16.4 16.8 L16.2 17.1 L16.0 17.4"/><path d="M2.4 19.2 L19.6 2.9"/></g></g><g class="f2"><g class="on"><path d="M2.9 7.9 L6.5 8.2 L10.1 3.6 L10.4 18 L6.4 14.5 L2.5 14.3 L2.8 7.8"/><path d="M13.5 7.8 Q15.8 11.2 13.4 14.4"/><path d="M16.2 4.9 Q20.3 10.9 15.8 17.2"/></g><g class="mut"><path d="M2.9 7.9 L3.4 7.9 L3.8 8.0 L4.2 8.0 L4.7 8.1 L5.2 8.1 L5.6 8.1 L6.0 8.2 L6.5 8.2 L6.8 7.8 L7.1 7.4 L7.4 7.0 L7.7 6.7 L8.0 6.3 L8.3 5.9 L8.6 5.5 L8.9 5.1 L9.2 4.8 L9.5 4.4 L9.8 4.0 L10.1 3.6 L10.1 4.0 L10.1 4.5 L10.1 5.0 L10.1 5.4 L10.1 5.8 L10.2 6.3 L10.2 6.8 L10.2 7.2 L10.2 7.7 L10.2 8.1 L10.2 8.6 L10.2 9.0"/><path d="M10.3 14.8 L10.3 15.3 L10.4 15.8 L10.4 16.2 L10.4 16.7 L10.4 17.1 L10.4 17.6 L10.4 18.0 L10.0 17.7 L9.7 17.4 L9.3 17.0 L8.9 16.7 L8.6 16.4"/><path d="M4.5 14.4 L4.0 14.4 L3.5 14.4 L3.0 14.3 L2.5 14.3 L2.5 13.8 L2.5 13.4 L2.6 12.9 L2.6 12.4 L2.6 12.0 L2.6 11.5 L2.6 11.1 L2.7 10.6 L2.7 10.1 L2.7 9.7 L2.7 9.2 L2.8 8.7 L2.8 8.3 L2.8 7.8"/><path d="M14.6 11.0 L14.6 11.2 L14.6 11.3 L14.6 11.5 L14.6 11.6 L14.6 11.8 L14.5 12.0 L14.5 12.1 L14.5 12.3 L14.4 12.5 L14.4 12.6 L14.3 12.8 L14.2 12.9 L14.2 13.1 L14.1 13.3 L14.0 13.4 L13.9 13.6 L13.8 13.8 L13.7 13.9 L13.6 14.1 L13.5 14.2 L13.4 14.4"/><path d="M17.8 8.2 L17.9 8.5 L18.0 8.8 L18.0 9.1 L18.1 9.4 L18.1 9.7 L18.1 10.1 L18.1 10.4 L18.2 10.7 L18.1 11.0 L18.1 11.3 L18.1 11.6 L18.1 11.9 L18.0 12.2 L18.0 12.5 L17.9 12.8 L17.8 13.1 L17.7 13.4 L17.6 13.8 L17.5 14.1 L17.4 14.4 L17.3 14.7 L17.1 15.0 L17.0 15.3 L16.8 15.6 L16.6 15.9 L16.4 16.3 L16.2 16.6 L16.0 16.9 L15.8 17.2"/><path d="M2.8 18.8 L19.8 3.3"/></g></g></svg></button>
 </nav>
 
 <div class="corner" id="corner">
@@ -245,7 +248,7 @@ body{font-family:var(--font-ui)}
 <div id="bk" hidden role="dialog" aria-modal="true" aria-label="Sketchbook">
   <div class="bkbox">
     <i class="pvspine" id="bkspine" aria-hidden="true"></i>
-    <div class="bkhead"><div class="bkl"><button type="button" id="bkback" hidden aria-label="Back to sketchbook" title="Back"><svg class="hd" viewBox="0 0 28 14" width="28" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M26 7.1 L3 6.9"/><path d="M8.2 2 L3 7 L8.1 12.2"/></g><g class="f2"><path d="M26 6.9 L3.1 7.2"/><path d="M8 2.2 L2.9 6.9 L8.3 12"/></g></svg></button><p id="bkcount">sketchbook</p></div><button type="button" id="bkclose" aria-label="Close sketchbook"><svg class="hd" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M4 4.3 L14 13.8"/><path d="M13.8 4 L4.2 14"/></g><g class="f2"><path d="M4.3 3.8 L13.7 14.2"/><path d="M14.2 4.3 L3.8 13.7"/></g></svg></button></div>
+    <div class="bkhead"><div class="bkl"><button type="button" id="bkback" hidden aria-label="Back to sketchbook" title="Back"><svg class="hd" viewBox="0 0 28 14" width="28" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M26 7.1 L3 6.9"/><path d="M8.2 2 L3 7 L8.1 12.2"/></g><g class="f2"><path d="M26 6.9 L3.1 7.2"/><path d="M8 2.2 L2.9 6.9 L8.3 12"/></g></svg></button><p id="bkcount"></p></div><button type="button" id="bkclose" aria-label="Close sketchbook"><svg class="hd" viewBox="0 0 18 18" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M4 4.3 L14 13.8"/><path d="M13.8 4 L4.2 14"/></g><g class="f2"><path d="M4.3 3.8 L13.7 14.2"/><path d="M14.2 4.3 L3.8 13.7"/></g></svg></button></div>
     <div class="bkbody" id="bkbody"></div>
   </div>
 </div>
@@ -1500,6 +1503,11 @@ const Book = (() => {
     },
     async list(){ const t = await tx(['meta'], 'readonly'), finished = done(t), rq = t.objectStore('meta').getAll(); await finished; return rq.result.sort((a, b) => b.created - a.created); },
     async file(id){ const t = await tx(['files'], 'readonly'), finished = done(t), rq = t.objectStore('files').get(id); await finished; return rq.result; },
+    async rename(id, name){
+      const t = await tx(['meta'], 'readwrite'), finished = done(t), st = t.objectStore('meta'), rq = st.get(id);
+      rq.onsuccess = () => { if (rq.result){ rq.result.name = name; st.put(rq.result); } };
+      await finished;
+    },
     async del(id){ const t = await tx(['meta', 'files'], 'readwrite'), finished = done(t); t.objectStore('meta').delete(id); t.objectStore('files').delete(id); await finished; }
   };
 })();
@@ -1526,7 +1534,7 @@ async function keepInBook(blob, kind, fileName){
 const bk = $('bk'), bkBody = $('bkbody');
 let bkItems = [], bkUrls = [], bkIdx = -1, bkMedia = null;
 function bkRelease(){ bkUrls.forEach(u => URL.revokeObjectURL(u)); bkUrls = []; if (bkMedia){ bkMedia(); bkMedia = null; } }
-function bkCount(){ $('bkcount').textContent = 'sketchbook' + (bkItems.length ? ' · ' + bkItems.length : ''); }
+function bkCount(){ $('bkcount').textContent = bkItems.length ? String(bkItems.length) : ''; }
 function showGrid(){
   bkRelease(); bkIdx = -1; $('bkback').hidden = true; bkCount(); bkBody.textContent = ''; bkBody.scrollTop = 0;
   if (!bkItems.length){
@@ -1539,7 +1547,7 @@ function showGrid(){
     const u = URL.createObjectURL(it.thumb); bkUrls.push(u);
     const im = document.createElement('img'); im.className = 'th'; im.alt = ''; im.src = u;
     const cap = document.createElement('span'); cap.className = 'cap'; cap.textContent = it.name;
-    const sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = KIND[it.kind] + ' · ' + fmtDate(it.created);
+    const sub = document.createElement('span'); sub.className = 'sub'; sub.textContent = fmtDate(it.created);
     b.append(im, cap, sub); b.onclick = () => showItem(i); g.appendChild(b);
   });
   bkBody.appendChild(g);
@@ -1551,7 +1559,24 @@ async function showItem(i){
   const media = document.createElement('div'); media.className = 'bkmedia pvmedia';
   const bar = document.createElement('div'); bar.className = 'bkbar';
   const info = document.createElement('p'); info.className = 'bkinfo';
-  info.textContent = it.name + ' · ' + KIND[it.kind] + ' · ' + fmtDate(it.created);
+  const nameBtn = document.createElement('button'); nameBtn.type = 'button'; nameBtn.className = 'bkname'; nameBtn.title = 'rename'; nameBtn.textContent = it.name;
+  const dateTx = document.createElement('span'); dateTx.textContent = ' \u00b7 ' + fmtDate(it.created);
+  info.append(nameBtn, dateTx);
+  nameBtn.onclick = () => {
+    const inp = document.createElement('input'); inp.className = 'bkedit'; inp.type = 'text'; inp.value = it.name; inp.maxLength = 80; inp.setAttribute('aria-label', 'Sketch name');
+    info.replaceChild(inp, nameBtn); inp.focus(); inp.select();
+    let fin = false;
+    const end = async save => {
+      if (fin) return; fin = true;
+      const v = inp.value.replace(/[\\/:*?"<>|]+/g, '-').trim();
+      if (save && v && v !== it.name){
+        try { await Book.rename(it.id, v); it.name = v; nameBtn.textContent = v; } catch (e){ console.error(e); setNote('could not rename that one.'); }
+      }
+      if (inp.parentNode) info.replaceChild(nameBtn, inp);
+    };
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter'){ e.preventDefault(); end(true); } else if (e.key === 'Escape'){ e.preventDefault(); end(false); } });
+    inp.addEventListener('blur', () => end(true));
+  };
   const btns = document.createElement('div'); btns.className = 'bkbtns';
   const mk = (label, fn, off, svg) => { const b = document.createElement('button'); b.type = 'button'; if (svg){ b.innerHTML = svg; b.setAttribute('aria-label', label); b.title = label; } else b.textContent = label; b.disabled = !!off; b.onclick = fn; btns.appendChild(b); return b; };
   mk('save', async () => {
