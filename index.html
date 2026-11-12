@@ -1052,7 +1052,7 @@ function applyScale(def){
   buildScale(); dirty = true;
 }
 (function(){
-  const menu = $('scalemenu'), lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = 'scale:';
+  const menu = $('scalemenu'), lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = 'scale';
   const cur = document.createElement('button'); cur.type = 'button'; cur.id = 'scalebtn'; cur.textContent = scaleDef.name;
   cur.setAttribute('aria-haspopup', 'listbox'); cur.setAttribute('aria-expanded', 'false');
   const list = document.createElement('div'); list.id = 'scalelist'; list.hidden = true; list.setAttribute('role', 'listbox');
@@ -1069,7 +1069,7 @@ function applyScale(def){
       list.style.left = cur.offsetLeft + 'px';
     }
   });
-  menu.append(lbl, cur, list);
+  menu.append(cur, lbl, list);
   menu.addEventListener('pointerdown', e => e.stopPropagation());
   document.addEventListener('pointerdown', () => { if (!list.hidden) close(); });
   menu.addEventListener('keydown', e => { if (e.key === 'Escape' && !list.hidden){ e.preventDefault(); e.stopPropagation(); close(); cur.focus(); } });
