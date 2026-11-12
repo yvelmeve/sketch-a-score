@@ -44,6 +44,16 @@ body{font-family:var(--font-ui)}
 .mark h1{margin:0;font-weight:400;font-size:13px;letter-spacing:.1em;text-transform:lowercase}
 .mark p{margin:0;font-size:12px;line-height:1.5;font-weight:300;color:var(--char-soft)}
 .mark p+p{font-style:italic}
+#scalemenu{position:relative;display:flex;align-items:baseline;gap:6px;pointer-events:auto;font-size:12px;font-weight:300;animation:menuIn .5s ease both}
+#scalemenu[hidden]{display:none}
+@keyframes menuIn{from{opacity:0}to{opacity:1}}
+#scalemenu .lbl{color:var(--char-soft)}
+#scalemenu button{background:none;border:0;margin:0;padding:2px 0;font:inherit;letter-spacing:inherit;color:var(--char-soft);cursor:pointer}
+#scalemenu button:focus-visible{outline:1px dashed var(--char);outline-offset:3px}
+#scalelist{position:absolute;left:0;top:100%;margin-top:4px;z-index:5;display:flex;flex-direction:column;align-items:flex-start;gap:0;padding:2px 10px 2px 0;background:var(--paper);white-space:nowrap}
+#scalelist[hidden]{display:none}
+#scalelist button{padding:5px 0}
+#scalelist button[hidden]{display:none}
 .bar{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);
   display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 16px;
   width:max-content;max-width:calc(100% - 32px);padding:8px 16px;
@@ -199,6 +209,7 @@ body{font-family:var(--font-ui)}
 <header class="mark">
   <h1>sketch-a-score</h1>
   <p id="hint">tap for a dot. hold for a circle. drag for a line.</p>
+  <div id="scalemenu" role="group" aria-label="Scale" hidden></div>
 </header>
 
 <nav class="bar" aria-label="Tools">
@@ -212,9 +223,9 @@ body{font-family:var(--font-ui)}
     <button class="tool" id="t-star" data-tool="star" aria-pressed="false" title="Star (S)">star</button>
   </div>
   <span class="sep"></span>
+  <button id="clear" title="Clear the page">clear</button>
   <button id="undo" aria-label="Undo" title="Undo (Ctrl or Cmd + Z)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M4.3 20.5 C9 21.2 14.6 20.9 17.6 17.6 C20.2 15.6 20.2 10.6 17.4 8.6 C15.8 6.9 11 6.4 6.1 6.6 L2.9 6.8"/><path d="M11.3 1.3 L2.9 6.8 L11.1 11.1"/></g></g><g class="f2"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M4.5 20.3 C9.2 21 14.4 21.1 17.5 17.8 C20.3 15.4 20.3 10.4 17.3 8.4 C15.6 6.6 11.1 6.6 6.2 6.4 L3.1 6.9"/><path d="M11.5 1.5 L3.1 6.9 L11 10.9"/></g></g></svg></button>
   <button id="redo" aria-label="Redo" title="Redo (Ctrl or Cmd + Shift + Z)"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M17.7 20.5 C13 21.2 7.4 20.9 4.4 17.6 C1.8 15.6 1.8 10.6 4.6 8.6 C6.2 6.9 11 6.4 15.9 6.6 L19.1 6.8"/><path d="M10.7 1.3 L19.1 6.8 L10.9 11.1"/></g></g><g class="f2"><g transform="translate(11 11) scale(.68) translate(-11 -11.2)" stroke-width="2.2"><path d="M17.5 20.3 C12.8 21 7.6 21.1 4.5 17.8 C1.7 15.4 1.7 10.4 4.7 8.4 C6.4 6.6 10.9 6.6 15.8 6.4 L18.9 6.9"/><path d="M10.5 1.5 L18.9 6.9 L11 10.9"/></g></g></svg></button>
-  <button id="clear" title="Clear the page">clear</button>
 </nav>
 
 <div class="corner" id="corner">
@@ -681,9 +692,17 @@ function drawOverlay(now){
 
 /* ---------- audio ---------- */
 let AC = null, soundOn = true, master, dry, revIn, dlyIn, bellRev, bellDly, droneGain, droneFilt, outNode;
-const SCALE = [0, 2, 5, 7, 9], ROOT = 50, NOTES = 16;        // D suspended pentatonic, D3 up to D6
+const SCALES = [
+  {id: 'sus',  name: 'suspended',  notes: [0, 2, 5, 7, 9]},            // D suspended pentatonic (the original)
+  {id: 'majp', name: 'major pent', notes: [0, 2, 4, 7, 9]},
+  {id: 'minp', name: 'minor pent', notes: [0, 3, 5, 7, 10], flat: true},
+  {id: 'maj',  name: 'major',      notes: [0, 2, 4, 5, 7, 9, 11]},
+  {id: 'min',  name: 'minor',      notes: [0, 2, 3, 5, 7, 8, 10], flat: true}
+];
+const ROOT = 50;                                                     // D3 up to D6, three octaves
+let scaleDef = SCALES[0], SCALE = scaleDef.notes, NL = SCALE.length, NOTES = NL * 3 + 1;
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
-const idxToMidi = i => ROOT + 12 * Math.floor(i / 5) + SCALE[((i % 5) + 5) % 5];
+const idxToMidi = i => ROOT + 12 * Math.floor(i / NL) + SCALE[((i % NL) + NL) % NL];
 const fq = i => mtof(idxToMidi(i));
 const yToIdx = y => Math.min(NOTES - 1, Math.floor((1 - clamp(y / H, 0, 1)) * NOTES));
 const panOf = x => clamp(x / W * 2 - 1, -1, 1) * 0.85;
@@ -784,7 +803,7 @@ function bell(freq, pan, vel, when, dur, bright, rev, att = 0.012, glass = false
   sendBell(out, pan);
 }
 function padStart(idx, pan, when){           // held while a circle grows
-  const base = Math.max(0, idx - 5), notes = [base, base + 2, base + 4];
+  const base = Math.max(0, idx - NL), notes = [base, base + 2, base + 4];
   const filt = AC.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 260; filt.Q.value = 0.4;
   const gn = AC.createGain(); gn.gain.value = 0.0001;
   const oscs = [];
@@ -861,19 +880,19 @@ function voiceStop(v){
 function starFlourish(cx, cy, m, R, q, vel, when){
   if (!AC || !soundOn) return;
   if (q < 2){                                  // star: a soft cascade of glassy chimes
-    const t0 = when || AC.currentTime, pan = panOf(cx), n = m * 2 + 2, base = Math.min(15, yToIdx(cy)) + 2;
-    bell(fq(Math.min(21, base + 3)), pan, vel * 0.07, t0, 3.6, 1, 0.95, 0.02, true);
+    const t0 = when || AC.currentTime, pan = panOf(cx), n = m * 2 + 2, base = Math.min(NOTES - 1, yToIdx(cy)) + 2;
+    bell(fq(Math.min(NOTES + 5, base + 3)), pan, vel * 0.07, t0, 3.6, 1, 0.95, 0.02, true);
     let t = t0;
     for (let i = 0; i < n; i++){
       const u = i / n;
       t += 0.04 + Math.random() * 0.08 + u * u * 0.16;             // sparkles thin out as they fade
-      bell(fq(Math.min(21, base + Math.floor(Math.random() * 8))) * (1 + (Math.random() - 0.5) * 0.004),
+      bell(fq(Math.min(NOTES + 5, base + Math.floor(Math.random() * 8))) * (1 + (Math.random() - 0.5) * 0.004),
            clamp(pan + (Math.random() - 0.5) * 1.2, -1, 1), vel * (0.035 + Math.random() * 0.04) * (1 - u * 0.5),
            t, 1.8 + Math.random() * 1.4, 1, 0.95, 0.02, true);
     }
     return;
   }
-  const t0 = when || AC.currentTime, low = Math.max(0, yToIdx(cy) - 5), pan = panOf(cx);
+  const t0 = when || AC.currentTime, low = Math.max(0, yToIdx(cy) - NL), pan = panOf(cx);
   const pat = [0, 2, 4, 3, 5, 7, 6, 8], size = clamp(R / 200, 0.15, 1);
   for (let i = 0; i < m; i++){
     const t = t0 + i * (0.06 + Math.random() * 0.05) * (1.2 - size * 0.4);
@@ -1019,6 +1038,36 @@ const hints = {
   star: ''
 };
 const hintFor = () => hints[tool];
+let hintGone = false;
+function applyScale(def){
+  scaleDef = def; SCALE = def.notes; NL = SCALE.length; NOTES = NL * 3 + 1;
+  $('scalebtn').textContent = def.name;
+  buildScale(); dirty = true;
+}
+(function(){
+  const menu = $('scalemenu'), lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = 'scale:';
+  const cur = document.createElement('button'); cur.type = 'button'; cur.id = 'scalebtn'; cur.textContent = scaleDef.name;
+  cur.setAttribute('aria-haspopup', 'listbox'); cur.setAttribute('aria-expanded', 'false');
+  const list = document.createElement('div'); list.id = 'scalelist'; list.hidden = true; list.setAttribute('role', 'listbox');
+  const close = () => { list.hidden = true; cur.setAttribute('aria-expanded', 'false'); };
+  SCALES.forEach(d => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = d.name; b.setAttribute('role', 'option');
+    b._d = d; b.addEventListener('click', () => { initAudio(); resumeAudio(); applyScale(d); close(); cur.focus(); });
+    list.appendChild(b);
+  });
+  cur.addEventListener('click', () => {
+    list.hidden = !list.hidden; cur.setAttribute('aria-expanded', String(!list.hidden));
+    if (!list.hidden){                                     // other scales only, lined up under the current word
+      list.querySelectorAll('button').forEach(b => { b.hidden = b._d === scaleDef; });
+      list.style.left = cur.offsetLeft + 'px';
+    }
+  });
+  menu.append(lbl, cur, list);
+  menu.addEventListener('pointerdown', e => e.stopPropagation());
+  document.addEventListener('pointerdown', () => { if (!list.hidden) close(); });
+  menu.addEventListener('keydown', e => { if (e.key === 'Escape' && !list.hidden){ e.preventDefault(); e.stopPropagation(); close(); cur.focus(); } });
+  setTimeout(() => { hintGone = true; $('hint').hidden = true; menu.hidden = false; }, 5000);   // the how-to gives way to the scale menu
+})();
 
 function startHold(){
   if (!ptr || ptr.mode !== 'pending') return;
@@ -1086,7 +1135,7 @@ function onUp(e){
     commit(p.s);
     if (p.pad) padStop(p.pad);
     bell(fq(idx), panOf(p.x0), 0.13, 0, 6, 0.8, 1);
-    bell(fq(Math.max(0, idx - 5)) / 2, panOf(p.x0), 0.1, 0, 6.5, 0.1, 1);
+    bell(fq(Math.max(0, idx - NL)) / 2, panOf(p.x0), 0.1, 0, 6.5, 0.1, 1);
     pulse(p.x0, p.y0, p.s.r * 0.98, p.s.r * 1.3, 1.6, 0.4);
   } else if (p.mode === 'line'){
     voiceStop(p.voice); commit(p.s);
@@ -1117,7 +1166,7 @@ stage.addEventListener('contextmenu', e => e.preventDefault());
 function setTool(t){
   tool = t;
   document.querySelectorAll('.tool').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tool === t)));
-  $('hint').textContent = hintFor();
+  if (!hintGone) $('hint').textContent = hintFor();
 }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => { initAudio(); resumeAudio(); setTool(b.dataset.tool); }));
 const SAVE_KEY = 'sketch-a-score:v1'; let saveT = 0;
@@ -1646,12 +1695,12 @@ function seedDrawing(){
 }
 
 /* ---------- loop ---------- */
-const NN = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const NN = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'], NF = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 function buildScale(){                         // note names down the left edge, one row per pitch band
   const el = $('scale'); el.textContent = '';
   for (let i = 0; i < NOTES; i++){
     const m = idxToMidi(i), d = document.createElement('i');
-    d.textContent = NN[m % 12] + (Math.floor(m / 12) - 1);
+    d.textContent = (scaleDef.flat ? NF : NN)[m % 12] + (Math.floor(m / 12) - 1);
     d.style.top = (H * (1 - (i + 1) / NOTES)) + 'px'; d.style.height = (H / NOTES) + 'px';
     if (m % 12 === 2) d.className = 'd';
     el.appendChild(d);
