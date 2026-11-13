@@ -755,7 +755,9 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden){ if (silentEl) silentEl.pause(); }
   else if (AC && AC.state !== 'running') AC.resume().catch(() => {});
 });
+let graphNodes = [];                            // drone oscillators of the current graph, so a reset can stop them
 function buildGraph(offline){                // wires the shared effects chain onto the current AC
+  graphNodes = [];
   master = AC.createGain(); master.gain.value = soundOn ? 0.9 : 0;
   const comp = AC.createDynamicsCompressor();
   comp.threshold.value = -20; comp.ratio.value = 3; comp.attack.value = 0.02; comp.release.value = 0.4;
@@ -778,12 +780,21 @@ function buildGraph(offline){                // wires the shared effects chain o
     const o = AC.createOscillator(); o.type = i < 2 ? 'sine' : 'triangle';
     o.frequency.value = mtof(m); o.detune.value = (i - 2) * 4;
     const og2 = AC.createGain(); og2.gain.value = [0.5, 0.35, 0.25, 0.12, 0.07][i];
-    o.connect(og2); og2.connect(droneFilt); o.start();
+    o.connect(og2); og2.connect(droneFilt); o.start(); graphNodes.push(o);
   });
   const lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 120;
-  lfo.connect(lg); lg.connect(droneFilt.frequency); lfo.start();
+  lfo.connect(lg); lg.connect(droneFilt.frequency); lfo.start(); graphNodes.push(lfo);
   droneFilt.connect(droneGain); send(droneGain, 0, 0.6, 0.1);
   updateDrone(offline);
+}
+function silenceAll(){                           // cut every sounding and scheduled note, bells, tails and echoes, then start a fresh effects chain
+  pulses.length = 0;
+  if (!AC || !master) return;
+  const oldMaster = master, oldComp = outNode, oldNodes = graphNodes, t = AC.currentTime;
+  try { oldMaster.gain.cancelScheduledValues(t); oldMaster.gain.setValueAtTime(oldMaster.gain.value, t); oldMaster.gain.linearRampToValueAtTime(0, t + 0.06); } catch (_) {}
+  setTimeout(() => { try { oldComp.disconnect(); } catch (_) {} oldNodes.forEach(o => { try { o.stop(); } catch (_) {} }); }, 150);
+  voices = 0;
+  buildGraph(false);
 }
 function resumeAudio(){ if (AC && AC.state !== 'running') AC.resume().catch(() => {}); }
 function updateDrone(immediate){
@@ -1165,7 +1176,7 @@ function onDown(e){
     g.getContext('2d').drawImage(cv, 0, 0); cv.parentNode.insertBefore(g, cv.nextSibling);
     requestAnimationFrame(() => requestAnimationFrame(() => { g.style.opacity = '0'; }));
     setTimeout(() => g.remove(), 1400);
-    strokes = []; redoStack = []; circleVer++; updateDrone(); dirty = true;
+    strokes = []; redoStack = []; circleVer++; silenceAll(); dirty = true;
   }
   try { stage.setPointerCapture(e.pointerId); } catch (_) {}
   const x = e.clientX, y = e.clientY;
@@ -1243,7 +1254,7 @@ function undo(){ if (ptr || busy) return; const s = strokes.pop(); if (s) redoSt
 function redo(){ if (ptr || busy) return; const s = redoStack.pop(); if (s) strokes.push(s); circleVer++; updateDrone(); dirty = true; syncUR(); }
 $('undo').addEventListener('click', undo);
 $('redo').addEventListener('click', redo);
-$('clear').addEventListener('click', () => { if (ptr || busy) return; strokes = []; redoStack = []; circleVer++; updateDrone(); dirty = true; syncUR(); });
+$('clear').addEventListener('click', () => { if (ptr || busy) return; strokes = []; redoStack = []; circleVer++; silenceAll(); dirty = true; syncUR(); });
 
 /* ---------- shake to clear (phones) ---------- */
 function fadeClear(){                           // wipe the page, letting the old drawing fade out
@@ -1253,7 +1264,7 @@ function fadeClear(){                           // wipe the page, letting the ol
   g.getContext('2d').drawImage(cv, 0, 0); cv.parentNode.insertBefore(g, cv.nextSibling);
   requestAnimationFrame(() => requestAnimationFrame(() => { g.style.opacity = '0'; }));
   setTimeout(() => g.remove(), 1100);
-  strokes = []; redoStack = []; circleVer++; updateDrone(); dirty = true; syncUR();
+  strokes = []; redoStack = []; circleVer++; silenceAll(); dirty = true; syncUR();
 }
 const Shake = (() => {
   let on = false, hits = [], last = 0, asked = false;
