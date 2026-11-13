@@ -178,10 +178,10 @@ body{font-family:var(--font-ui)}
 #gridbtn[aria-pressed="true"] .dot{display:inline}
 #dl{display:flex;flex-direction:column;align-items:flex-end}
 #dl[hidden]{display:none}
-#grid{position:fixed;inset:0;pointer-events:none;
-  background-image:linear-gradient(to right,rgba(47,47,52,.1) 1px,transparent 1px);
-  background-size:32px 100%}
+#grid{position:fixed;inset:0;pointer-events:none}
 #grid i{position:absolute;left:0;right:0;height:1px;background:rgba(47,47,52,.1)}
+#grid i.v{left:auto;right:auto;top:0;bottom:0;width:1px;height:auto;background:rgba(47,47,52,.08)}
+#grid i.v.bar{background:rgba(47,47,52,.16)}
 #rec .inner{fill:currentColor!important;stroke-width:1.5}
 #rec[aria-pressed="true"] .inner{animation:recpulse 1.6s ease-in-out infinite}
 @keyframes recpulse{50%{opacity:.3}}
@@ -649,7 +649,8 @@ function paintInk(c, pw, ph, scale, v, withLive){      // transparent ink layer 
 function renderInk(v){ paintInk(g, cv.width, cv.height, DPR, v, true); }
 
 /* ---------- overlay: scanning line + pulses ---------- */
-const LOOP = 17;                       // seconds per sweep
+const BPM = 120;
+let BEATS = 32, LOOP = BEATS * 60 / BPM;       // one sweep = BEATS beats at 120 bpm (16 s wide screens, 8 s narrow); grid lines are the beats
 let scanOn = true, scan0 = performance.now() - LOOP * 1000 * 0.2, lastPx = W * 0.2;
 const pulses = [];
 let pulseSink = pulses, pulseClock = null;        // export redirects pulses to its own list and clock
@@ -1806,6 +1807,7 @@ function buildScale(){                         // note names down the left edge,
   }
   const gr = $('grid'); gr.textContent = '';                         // grid rows sit on the pitch-band edges
   for (let i = 1; i < NOTES; i++){ const l = document.createElement('i'); l.style.top = Math.round(H * i / NOTES) + 'px'; gr.appendChild(l); }
+  for (let k = 1; k < BEATS; k++){ const l = document.createElement('i'); l.className = 'v' + (k % 4 === 0 ? ' bar' : ''); l.style.left = Math.round(W * k / BEATS) + 'px'; gr.appendChild(l); }   // the play head crosses one of these every half second
 }
 function fitBar(){                              // shrink the toolbar to fit narrow screens so it never wraps
   const bar = document.querySelector('.bar'); if (!bar) return;
@@ -1815,7 +1817,12 @@ function fitBar(){                              // shrink the toolbar to fit nar
 }
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitBar);
 function resize(){
-  W = innerWidth; H = innerHeight; DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  { const nb = W < 700 ? 16 : 32;                 // tempo stays 120 bpm; narrow screens just get a shorter bar of beats
+    if (nb !== BEATS){
+      const now = performance.now(), ph = (((now - scan0) / 1000) % LOOP) / LOOP;
+      BEATS = nb; LOOP = BEATS * 60 / BPM; scan0 = now - ph * LOOP * 1000;     // keep the play head where it was
+    } } DPR = Math.min(window.devicePixelRatio || 1, 2);
   if (W * H * DPR * DPR > 3.2e6) DPR = Math.max(1, Math.sqrt(3.2e6 / (W * H)));   // keep big screens light
   cv.width = Math.floor(W * DPR); cv.height = Math.floor(H * DPR);
   ov.width = W; ov.height = H;                                                    // overlay is thin and soft: 1x is enough
