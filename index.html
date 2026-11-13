@@ -1244,6 +1244,43 @@ function redo(){ if (ptr || busy) return; const s = redoStack.pop(); if (s) stro
 $('undo').addEventListener('click', undo);
 $('redo').addEventListener('click', redo);
 $('clear').addEventListener('click', () => { if (ptr || busy) return; strokes = []; redoStack = []; circleVer++; updateDrone(); dirty = true; syncUR(); });
+
+/* ---------- shake to clear (phones) ---------- */
+function fadeClear(){                           // wipe the page, letting the old drawing fade out
+  if (ptr || busy || !strokes.length) return;
+  const g = document.createElement('canvas'); g.width = cv.width; g.height = cv.height;
+  g.style.cssText = 'width:' + cv.style.width + ';height:' + cv.style.height + ';pointer-events:none;opacity:1;transition:opacity .9s ease';
+  g.getContext('2d').drawImage(cv, 0, 0); cv.parentNode.insertBefore(g, cv.nextSibling);
+  requestAnimationFrame(() => requestAnimationFrame(() => { g.style.opacity = '0'; }));
+  setTimeout(() => g.remove(), 1100);
+  strokes = []; redoStack = []; circleVer++; updateDrone(); dirty = true; syncUR();
+}
+const Shake = (() => {
+  let on = false, hits = [], last = 0, asked = false;
+  const onMotion = e => {
+    const a = e.accelerationIncludingGravity || e.acceleration; if (!a) return;
+    const g = e.accelerationIncludingGravity ? 9.8 : 0;                // remove gravity so resting reads as ~0
+    const m = Math.abs(Math.hypot(a.x || 0, a.y || 0, a.z || 0) - g), now = performance.now();
+    if (m < 17 || now - last < 200) return;                           // a hard jolt, not a footstep
+    last = now; hits = hits.filter(t => now - t < 900); hits.push(now);
+    if (hits.length >= 3){                                            // three jolts in under a second = a shake
+      hits = [];
+      if (!$('pv').hidden || !$('bk').hidden) return;
+      fadeClear();
+    }
+  };
+  return {
+    start(){
+      if (on || !(window.matchMedia && matchMedia('(pointer:coarse)').matches) || typeof DeviceMotionEvent === 'undefined') return;
+      const go = () => { on = true; addEventListener('devicemotion', onMotion); };
+      if (typeof DeviceMotionEvent.requestPermission === 'function'){   // iPhone: needs a tap, then a one-time permission prompt
+        if (asked) return; asked = true;
+        DeviceMotionEvent.requestPermission().then(r => { if (r === 'granted') go(); }).catch(() => { asked = false; });
+      } else go();
+    }
+  };
+})();
+['pointerup', 'touchend', 'click'].forEach(ev => document.addEventListener(ev, () => Shake.start(), true));
 function setScan(on){
   scanOn = on; $('scan').setAttribute('aria-pressed', String(on));
   if (on){ scan0 = performance.now(); lastPx = 0; }
