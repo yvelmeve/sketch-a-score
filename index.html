@@ -880,17 +880,18 @@ function voiceStop(v){
   v.gn.gain.setTargetAtTime(0, t, 0.18);
   v.oscs.forEach(o => o.stop(t + 1.5)); v.lfo.stop(t + 1.5);
 }
+const sizeVel = r => 0.12 + 0.88 * clamp(r / R_MAX(), 0, 1);          // flowers and stars: bigger is louder
 function starFlourish(cx, cy, m, R, q, vel, when){
   if (!AC || !soundOn) return;
   if (q < 2){                                  // star: a soft cascade of glassy chimes
     const t0 = when || AC.currentTime, pan = panOf(cx), n = m * 2 + 2, base = Math.min(NOTES - 1, yToIdx(cy)) + 2;
-    bell(fq(Math.min(NOTES + 5, base + 3)), pan, vel * 0.07, t0, 3.6, 1, 0.95, 0.02, true);
+    bell(fq(Math.min(NOTES + 5, base + 3)), pan, vel * 0.1, t0, 3.6, 1, 0.95, 0.02, true);
     let t = t0;
     for (let i = 0; i < n; i++){
       const u = i / n;
       t += 0.04 + Math.random() * 0.08 + u * u * 0.16;             // sparkles thin out as they fade
       bell(fq(Math.min(NOTES + 5, base + Math.floor(Math.random() * 8))) * (1 + (Math.random() - 0.5) * 0.004),
-           clamp(pan + (Math.random() - 0.5) * 1.2, -1, 1), vel * (0.035 + Math.random() * 0.04) * (1 - u * 0.5),
+           clamp(pan + (Math.random() - 0.5) * 1.2, -1, 1), vel * (0.035 + Math.random() * 0.04) * 1.4 * (1 - u * 0.5),
            t, 1.8 + Math.random() * 1.4, 1, 0.95, 0.02, true);
     }
     return;
@@ -901,9 +902,9 @@ function starFlourish(cx, cy, m, R, q, vel, when){
     const t = t0 + i * (0.06 + Math.random() * 0.05) * (1.2 - size * 0.4);
     bell(fq(low + pat[i % 8]) * (1 + (Math.random() - 0.5) * 0.006),
          clamp(pan + (Math.random() - 0.5) * 0.4, -1, 1),
-         vel * (0.07 + Math.random() * 0.05), t, 3 + size * 2, q < 2 ? 1 : clamp((q - 2) / 2, 0.15, 1), 0.9);
+         vel * (0.07 + Math.random() * 0.05) * 2.2, t, 3 + size * 2, q < 2 ? 1 : clamp((q - 2) / 2, 0.15, 1), 0.9);
   }
-  padNote(low, pan, 4 + size * 3, size, 0.05 * vel, t0);
+  padNote(low, pan, 4 + size * 3, size, 0.11 * vel, t0);
 }
 
 /* ---------- scanning playback ---------- */
@@ -1001,10 +1002,10 @@ function trigger(ev, at){
     padNote(idx, pan, dur, clamp(ev.r / 260, 0.1, 1), 0.06, t);
     pulse(ev.cx, ev.y, ev.r * 0.96, ev.r * 1.1, dur, 0.34);
   } else if (ev.k === 'strum'){
-    for (let j = 0; j < ev.n; j++) bell(fq(Math.max(0, idx - 3) + j), pan, 0.04, t + j * 0.05, 3.8, 0.4, 0.8);
+    for (let j = 0; j < ev.n; j++) bell(fq(Math.max(0, idx - 3) + j), pan, 0.09, t + j * 0.05, 3.8, 0.4, 0.8);
     pulse(ev.x, ev.y, 6, 26, 1, 0.3);
   } else if (ev.k === 'star'){
-    starFlourish(ev.x, ev.y, ev.m, ev.r, ev.q, 0.55, t);
+    starFlourish(ev.x, ev.y, ev.m, ev.r, ev.q, 0.55 * sizeVel(ev.r), t);
     pulse(ev.x, ev.y, ev.r * 0.5, ev.r * 1.25, 1.3, 0.34);
   }
 }
@@ -1133,7 +1134,7 @@ function onDown(e){
     const s = newStroke('rake'); s.pts = [{x, y}]; live = s; ptr.s = s;
     if (AC && soundOn){
       const offs = []; for (let i = 0; i < s.tines; i++) offs.push(i);
-      ptr.voice = sustainStart(offs, -4, 'triangle', 0.13, panOf(x));
+      ptr.voice = sustainStart(offs, -4, 'triangle', 0.3, panOf(x));
     }
   } else {
     ptr.mode = 'shape';
@@ -1167,7 +1168,7 @@ function onUp(e){
     if (s.r < 14){ s.r = 9 + Math.random() * 3; }   // a click makes a tiny one
     if (p.pad) padStop(p.pad);
     s.paths = null; commit(s);
-    starFlourish(p.x0, p.y0, s.m, s.r, s.q, 1, now);
+    starFlourish(p.x0, p.y0, s.m, s.r, s.q, sizeVel(s.r), now);
     pulse(p.x0, p.y0, s.r * 0.6, s.r * 1.3, 1.3, 0.4);
   }
   resumeAudio();
