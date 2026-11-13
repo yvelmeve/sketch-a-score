@@ -1041,9 +1041,9 @@ const hints = {
   star: ''
 };
 const hintFor = () => hints[tool];
-(function(){                                      // touch screens: a quick prompt in the middle of the page
-  if (!(window.matchMedia && matchMedia('(pointer:coarse)').matches)) return;
-  const t = document.createElement('p'); t.id = 'tapstart'; t.textContent = 'tap to start'; t.setAttribute('aria-hidden', 'true');
+(function(){                                      // a quick prompt in the middle of the page
+  const touch = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+  const t = document.createElement('p'); t.id = 'tapstart'; t.textContent = touch ? 'tap to start' : 'click to start'; t.setAttribute('aria-hidden', 'true');
   document.body.appendChild(t);
   const gone = () => { clearTimeout(tm); removeEventListener('pointerdown', gone, true); t.remove(); };     // 3 seconds, or the first tap
   const tm = setTimeout(gone, 3000); addEventListener('pointerdown', gone, true);
@@ -1112,6 +1112,15 @@ function onMove(x, y, ts){
 function onDown(e){
   if (ptr || busy || e.button > 0) return;
   initAudio(); resumeAudio();
+  if (fresh){                                    // first interaction: the default drawing fades away and you start on a blank page
+    fresh = false;
+    const g = document.createElement('canvas'); g.width = cv.width; g.height = cv.height;
+    g.style.cssText = 'width:' + cv.style.width + ';height:' + cv.style.height + ';pointer-events:none;opacity:1;transition:opacity 1.2s ease';
+    g.getContext('2d').drawImage(cv, 0, 0); cv.parentNode.insertBefore(g, cv.nextSibling);
+    requestAnimationFrame(() => requestAnimationFrame(() => { g.style.opacity = '0'; }));
+    setTimeout(() => g.remove(), 1400);
+    strokes = []; redoStack = []; circleVer++; updateDrone(); dirty = true;
+  }
   try { stage.setPointerCapture(e.pointerId); } catch (_) {}
   const x = e.clientX, y = e.clientY;
   ptr = {id: e.pointerId, x0: x, y0: y, x, y, lastT: e.timeStamp, speed: 0, mode: 'pending',
@@ -1665,6 +1674,7 @@ downloads = {save: ({filename, data}) => new Promise(res => {      // a normal b
 $('dl').hidden = false; if (!canRecord) recBtn.hidden = true;
 
 /* ---------- starting sheet ---------- */
+let fresh = false;                               // true while the default drawing is on the page; the first touch of the stage clears it
 function seedDrawing(){
   const X = f => W * f, Y = f => H * f, U = Math.min(W, H);
   let s = newStroke('line', 101), poly = [];
@@ -1672,9 +1682,8 @@ function seedDrawing(){
   s.pts = resample(poly, 5); commit(s);
   s = newStroke('circle', 202); s.pts = [{x: X(0.3), y: Y(0.28)}]; s.r = U * 0.1; commit(s);
   s = newStroke('circle', 203); s.pts = [{x: X(0.3) + U * 0.14, y: Y(0.28) + U * 0.03}]; s.r = U * 0.085; commit(s);
-  const touch = window.matchMedia && matchMedia('(pointer:coarse)').matches;          // on touch screens keep the middle clear for 'tap to start'
   [[0.17, 0.3], [0.2, 0.42], [0.43, 0.8], [0.58, 0.52], [0.87, 0.46], [0.93, 0.3]].forEach(([a, b], i) => {
-    if (touch && i === 3) return;
+    if (i === 3) return;                                 // keep the middle clear for 'tap / click to start'
     const d = newStroke('dot', 300 + i); d.pts = [{x: X(a), y: Y(b)}]; commit(d);
   });
   s = newStroke('flower', 404); s.pts = [{x: X(0.72), y: Y(0.3)}]; s.r = U * 0.12; s.ang = -1.2; commit(s);
@@ -1682,6 +1691,7 @@ function seedDrawing(){
   poly = [];
   for (let i = 0; i <= 30; i++){ const u = i / 30; poly.push({x: X(0.46 + 0.44 * u), y: Y(0.74 - 0.1 * u) - Math.sin(u * Math.PI) * Y(0.08)}); }
   s = newStroke('rake', 505); s.pts = resample(poly, 5.5); commit(s);
+  fresh = true;
 }
 
 /* ---------- loop ---------- */
