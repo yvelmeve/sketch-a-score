@@ -703,7 +703,7 @@ const SCALES = [
   {id: 'min',  name: 'minor',      notes: [0, 2, 3, 5, 7, 8, 10], flat: true}
 ];
 const ROOT = 50;                                                     // D3 up to D6, three octaves
-let scaleDef = SCALES[0], SCALE = scaleDef.notes, NL = SCALE.length, NOTES = NL * 3 + 1;
+let scaleDef = SCALES[0], SCALE = scaleDef.notes, NL = SCALE.length, NOTES = NL * (scaleDef.oct || 3) + 1, SM = Math.max(1, Math.round(NL / 6));   // SM: how many scale steps make roughly a 'third' in chords
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 const idxToMidi = i => ROOT + 12 * Math.floor(i / NL) + SCALE[((i % NL) + NL) % NL];
 const fq = i => mtof(idxToMidi(i));
@@ -726,9 +726,35 @@ function initAudio(){
   if (AC) return;
   const A = window.AudioContext || window.webkitAudioContext;
   if (!A) return;
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (_) {}   // iPhone: play even with the silent switch on
   AC = new A();
   buildGraph(false);
 }
+/* phones: sound may only start from a finished touch, and an iPhone on silent mutes web audio
+   unless a media element is playing. unlock on every tap/click until the audio is actually running. */
+let silentEl = null;
+function silentWav(){
+  const n = 800, b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([b], {type: 'audio/wav'}));
+}
+function unlockAudio(){
+  initAudio(); if (!AC) return;
+  if (AC.state !== 'running') AC.resume().catch(() => {});
+  try { const src = AC.createBufferSource(); src.buffer = AC.createBuffer(1, 1, AC.sampleRate); src.connect(AC.destination); src.start(0); } catch (_) {}
+  if (!navigator.audioSession){
+    try {
+      if (!silentEl){ silentEl = document.createElement('audio'); silentEl.src = silentWav(); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); silentEl.setAttribute('x-webkit-airplay', 'deny'); }
+      if (silentEl.paused) silentEl.play().catch(() => {});
+    } catch (_) {}
+  }
+}
+['touchend', 'pointerup', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (!AC || AC.state !== 'running') unlockAudio(); }, true));
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ if (silentEl) silentEl.pause(); }
+  else if (AC && AC.state !== 'running') AC.resume().catch(() => {});
+});
 function buildGraph(offline){                // wires the shared effects chain onto the current AC
   master = AC.createGain(); master.gain.value = soundOn ? 0.9 : 0;
   const comp = AC.createDynamicsCompressor();
@@ -806,7 +832,7 @@ function bell(freq, pan, vel, when, dur, bright, rev, att = 0.012, glass = false
   sendBell(out, pan);
 }
 function padStart(idx, pan, when){           // held while a circle grows
-  const base = Math.max(0, idx - NL), notes = [base, base + 2, base + 4];
+  const base = Math.max(0, idx - NL), notes = [base, base + 2 * SM, base + 4 * SM];
   const filt = AC.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 260; filt.Q.value = 0.4;
   const gn = AC.createGain(); gn.gain.value = 0.0001;
   const oscs = [];
@@ -865,7 +891,7 @@ function voiceUpdate(p){
   if (base !== v.base){
     const first = v.base < 0; v.base = base;
     v.oscs.forEach((o, k) => {
-      const f = fq(base + v.offs[k >> 1]);
+      const f = fq(base + v.offs[k >> 1] * SM);
       first ? (o.frequency.value = f) : o.frequency.setTargetAtTime(f, t, 0.06);
     });
   }
@@ -884,13 +910,13 @@ const sizeVel = (r, q) => { const lo = q < 2 ? 0.25 : 0.45; return lo + (1 - lo)
 function starFlourish(cx, cy, m, R, q, vel, when){
   if (!AC || !soundOn) return;
   if (q < 2){                                  // star: a soft cascade of glassy chimes
-    const t0 = when || AC.currentTime, pan = panOf(cx), n = m * 2 + 2, base = Math.min(NOTES - 1, yToIdx(cy)) + 2;
-    bell(fq(Math.min(NOTES + 5, base + 3)), pan, vel * 0.1, t0, 3.6, 1, 0.95, 0.02, true);
+    const t0 = when || AC.currentTime, pan = panOf(cx), n = m * 2 + 2, base = Math.min(NOTES - 1, yToIdx(cy)) + 2 * SM;
+    bell(fq(Math.min(NOTES + 5 * SM, base + 3 * SM)), pan, vel * 0.1, t0, 3.6, 1, 0.95, 0.02, true);
     let t = t0;
     for (let i = 0; i < n; i++){
       const u = i / n;
       t += 0.04 + Math.random() * 0.08 + u * u * 0.16;             // sparkles thin out as they fade
-      bell(fq(Math.min(NOTES + 5, base + Math.floor(Math.random() * 8))) * (1 + (Math.random() - 0.5) * 0.004),
+      bell(fq(Math.min(NOTES + 5 * SM, base + Math.floor(Math.random() * 8) * SM)) * (1 + (Math.random() - 0.5) * 0.004),
            clamp(pan + (Math.random() - 0.5) * 1.2, -1, 1), vel * (0.035 + Math.random() * 0.04) * 1.4 * (1 - u * 0.5),
            t, 1.8 + Math.random() * 1.4, 1, 0.95, 0.02, true);
     }
@@ -900,7 +926,7 @@ function starFlourish(cx, cy, m, R, q, vel, when){
   const pat = [0, 2, 4, 3, 5, 7, 6, 8], size = clamp(R / 200, 0.15, 1);
   for (let i = 0; i < m; i++){
     const t = t0 + i * (0.06 + Math.random() * 0.05) * (1.2 - size * 0.4);
-    bell(fq(low + pat[i % 8]) * (1 + (Math.random() - 0.5) * 0.006),
+    bell(fq(low + pat[i % 8] * SM) * (1 + (Math.random() - 0.5) * 0.006),
          clamp(pan + (Math.random() - 0.5) * 0.4, -1, 1),
          vel * (0.07 + Math.random() * 0.05) * 2.2, t, 3 + size * 2, q < 2 ? 1 : clamp((q - 2) / 2, 0.15, 1), 0.9);
   }
@@ -1019,7 +1045,7 @@ function trigger(ev, at){
     padNote(idx, pan, dur, clamp(ev.r / 260, 0.1, 1), 0.06, t);
     pulse(ev.cx, ev.y, ev.r * 0.96, ev.r * 1.1, dur, 0.34);
   } else if (ev.k === 'strum'){
-    for (let j = 0; j < ev.n; j++) bell(fq(Math.max(0, idx - 3) + j), pan, 0.09, t + j * 0.05, 3.8, 0.4, 0.8);
+    for (let j = 0; j < ev.n; j++) bell(fq(Math.max(0, idx - 3 * SM) + j * SM), pan, 0.09, t + j * 0.05, 3.8, 0.4, 0.8);
     pulse(ev.x, ev.y, 6, 26, 1, 0.3);
   } else if (ev.k === 'star'){
     starFlourish(ev.x, ev.y, ev.m, ev.r, ev.q, 0.55 * sizeVel(ev.r, ev.q), t);
@@ -1068,7 +1094,7 @@ const hintFor = () => hints[tool];
 })();
 let hintGone = false;
 function applyScale(def){
-  scaleDef = def; SCALE = def.notes; NL = SCALE.length; NOTES = NL * 3 + 1;
+  scaleDef = def; SCALE = def.notes; NL = SCALE.length; NOTES = NL * (def.oct || 3) + 1; SM = Math.max(1, Math.round(NL / 6));
   $('scalebtn').textContent = def.name;
   buildScale(); dirty = true;
 }
@@ -1151,7 +1177,7 @@ function onDown(e){
     const s = newStroke('rake'); s.pts = [{x, y}]; live = s; ptr.s = s;
     if (AC && soundOn){
       const offs = []; for (let i = 0; i < s.tines; i++) offs.push(i);
-      ptr.voice = sustainStart(offs, -4, 'triangle', 0.3, panOf(x));
+      ptr.voice = sustainStart(offs, -4 * SM, 'triangle', 0.3, panOf(x));
     }
   } else {
     ptr.mode = 'shape';
@@ -1161,7 +1187,7 @@ function onDown(e){
   dirty = true;
 }
 function onUp(e){
-  initAudio(); resumeAudio();                      // phones only unlock sound when a touch ends, so a first drag unlocks it on release
+  unlockAudio();                      // phones only unlock sound when a touch ends, so a first drag unlocks it on release
   const p = ptr;
   if (!p || (e && e.pointerId !== p.id)) return;
   ptr = null; clearTimeout(p.timer);
@@ -1718,9 +1744,10 @@ function buildScale(){                         // note names down the left edge,
   const el = $('scale'); el.textContent = '';
   for (let i = 0; i < NOTES; i++){
     const m = idxToMidi(i), d = document.createElement('i');
-    d.textContent = (scaleDef.flat ? NF : NN)[m % 12] + (Math.floor(m / 12) - 1);
+    if (scaleDef.names){ const nm = scaleDef.names[i % NL]; d.textContent = nm ? nm + (Math.floor(Math.round(m) / 12) - 1) : ''; if (nm === 'D') d.className = 'd'; }
+    else d.textContent = (scaleDef.flat ? NF : NN)[m % 12] + (Math.floor(m / 12) - 1);
     d.style.top = (H * (1 - (i + 1) / NOTES)) + 'px'; d.style.height = (H / NOTES) + 'px';
-    if (m % 12 === 2) d.className = 'd';
+    if (!scaleDef.names && m % 12 === 2) d.className = 'd';
     el.appendChild(d);
   }
   const gr = $('grid'); gr.textContent = '';                         // grid rows sit on the pitch-band edges
