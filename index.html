@@ -180,8 +180,7 @@ body{font-family:var(--font-ui)}
 #dl[hidden]{display:none}
 #grid{position:fixed;inset:0;pointer-events:none}
 #grid i{position:absolute;left:0;right:0;height:1px;background:rgba(47,47,52,.1)}
-#grid i.v{left:auto;right:auto;top:0;bottom:0;width:1px;height:auto;background:rgba(47,47,52,.08)}
-#grid i.v.bar{background:rgba(47,47,52,.16)}
+#grid i.v{left:auto;right:auto;top:0;bottom:0;width:1px;height:auto}
 #rec .inner{fill:currentColor!important;stroke-width:1.5}
 #rec[aria-pressed="true"] .inner{animation:recpulse 1.6s ease-in-out infinite}
 @keyframes recpulse{50%{opacity:.3}}
@@ -1807,7 +1806,7 @@ function buildScale(){                         // note names down the left edge,
   }
   const gr = $('grid'); gr.textContent = '';                         // grid rows sit on the pitch-band edges
   for (let i = 1; i < NOTES; i++){ const l = document.createElement('i'); l.style.top = Math.round(H * i / NOTES) + 'px'; gr.appendChild(l); }
-  for (let k = 1; k < BEATS; k++){ const l = document.createElement('i'); l.className = 'v' + (k % 4 === 0 ? ' bar' : ''); l.style.left = Math.round(W * k / BEATS) + 'px'; gr.appendChild(l); }   // the play head crosses one of these every half second
+  for (let k = 1; k < BEATS; k++){ const l = document.createElement('i'); l.className = 'v'; l.style.left = Math.round(W * k / BEATS) + 'px'; gr.appendChild(l); }   // the play head crosses one of these every half second
 }
 function fitBar(){                              // shrink the toolbar to fit narrow screens so it never wraps
   const bar = document.querySelector('.bar'); if (!bar) return;
