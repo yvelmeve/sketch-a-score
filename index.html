@@ -1134,6 +1134,7 @@ function onDown(e){
   dirty = true;
 }
 function onUp(e){
+  initAudio(); resumeAudio();                      // phones only unlock sound when a touch ends, so a first drag unlocks it on release
   const p = ptr;
   if (!p || (e && e.pointerId !== p.id)) return;
   ptr = null; clearTimeout(p.timer);
