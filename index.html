@@ -181,8 +181,8 @@ body{font-family:var(--font-ui)}
 #grid{position:fixed;inset:0;pointer-events:none}
 #grid i{position:absolute;left:0;right:0;height:1px;background:rgba(47,47,52,.1)}
 #grid i.v{left:auto;right:auto;top:0;bottom:0;width:1px;height:auto}
-#rec .inner{fill:currentColor!important;stroke-width:1.5}
-#rec[aria-pressed="true"] .inner{animation:recpulse 1.6s ease-in-out infinite}
+#rec .inner{fill:none}
+#rec[aria-pressed="true"] .inner{fill:currentColor;animation:recpulse 1.6s ease-in-out infinite}
 @keyframes recpulse{50%{opacity:.3}}
 .hd .x{display:none}
 .hd .mut{display:none}
@@ -236,7 +236,7 @@ drag for a line.</p>
   </div>
   <div id="dl" hidden>
     <button id="bkbtn" type="button" aria-label="Sketchbook" title="Sketchbook" hidden><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M6.6 3.5 L18 3.1 L18.3 18.6 L6.4 18.9 L6.5 3.7"/><path d="M3.1 6.6 L7.9 6.4"/><path d="M3 11 L7.9 10.9"/><path d="M3.2 15.4 L7.8 15.5"/></g><g class="f2"><path d="M6.4 3.3 L17.8 3.5 L18.1 18.4 L6.6 18.8 L6.3 3.5"/><path d="M3.3 6.4 L7.7 6.7"/><path d="M3.1 11.2 L7.8 10.8"/><path d="M3 15.6 L7.9 15.3"/></g></svg></button>
-    <button id="rec" type="button" aria-pressed="false" aria-label="Record the page" title="Record the page as you sketch"><span id="rtime"></span><svg class="hd" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M11.2 1.9 C16.4 1.6 20.5 5.6 20.2 11 C19.9 16.3 15.7 20.3 10.6 20 C5.5 19.7 1.9 15.6 2.1 10.8 C2.3 5.9 6.1 2.2 11.4 2.1 L12.6 2.3"/><path class="inner" fill="currentColor" d="M11 6.5 C13.7 6.3 15.8 8.4 15.6 11 C15.4 13.6 13.3 15.6 10.9 15.4 C8.3 15.2 6.5 13.2 6.6 10.9 C6.7 8.5 8.6 6.6 11.1 6.6"/></g><g class="f2"><path d="M10.8 2.2 C15.9 1.7 20.2 5.9 20 11.3 C19.8 16.6 15.4 20.5 10.3 19.8 C5.3 19.5 2.2 15.2 2.4 10.4 C2.7 5.6 6.4 2.4 11.1 1.8 L12.2 1.9"/><path class="inner" fill="currentColor" d="M11.3 6.6 C13.9 6.7 15.6 8.6 15.4 11.2 C15.2 13.7 13 15.4 10.6 15.2 C8.2 15 6.7 13 6.8 10.7 C6.9 8.4 8.8 6.4 11.2 6.4"/></g></svg></button>
+    <button id="rec" type="button" aria-pressed="false" aria-label="Record the page" title="Record the page as you sketch"><span id="rtime"></span><svg class="hd" viewBox="0 0 22 22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M11.2 1.9 C16.4 1.6 20.5 5.6 20.2 11 C19.9 16.3 15.7 20.3 10.6 20 C5.5 19.7 1.9 15.6 2.1 10.8 C2.3 5.9 6.1 2.2 11.4 2.1 L12.6 2.3"/><path class="inner" d="M11 6.5 C13.7 6.3 15.8 8.4 15.6 11 C15.4 13.6 13.3 15.6 10.9 15.4 C8.3 15.2 6.5 13.2 6.6 10.9 C6.7 8.5 8.6 6.6 11.1 6.6"/></g><g class="f2"><path d="M10.8 2.2 C15.9 1.7 20.2 5.9 20 11.3 C19.8 16.6 15.4 20.5 10.3 19.8 C5.3 19.5 2.2 15.2 2.4 10.4 C2.7 5.6 6.4 2.4 11.1 1.8 L12.2 1.9"/><path class="inner" d="M11.3 6.6 C13.9 6.7 15.6 8.6 15.4 11.2 C15.2 13.7 13 15.4 10.6 15.2 C8.2 15 6.7 13 6.8 10.7 C6.9 8.4 8.8 6.4 11.2 6.4"/></g></svg></button>
     <button id="save" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Save" title="Save a sketch, a gif or a video"><svg class="hd" viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="f1"><path d="M11 3.4 L11.1 14.2"/><path d="M6.7 10.2 L11 14.6 L15.4 10"/><path d="M4.1 18.5 L17.9 18.3"/></g><g class="f2"><path d="M11.2 3.2 L10.9 14"/><path d="M6.5 10 L10.9 14.4 L15.5 10.3"/><path d="M4 18.3 L18 18.6"/></g></svg></button>
     <p id="rnote" role="status"></p>
   </div>
