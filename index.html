@@ -1669,7 +1669,9 @@ function seedDrawing(){
   s.pts = resample(poly, 5); commit(s);
   s = newStroke('circle', 202); s.pts = [{x: X(0.3), y: Y(0.28)}]; s.r = U * 0.1; commit(s);
   s = newStroke('circle', 203); s.pts = [{x: X(0.3) + U * 0.14, y: Y(0.28) + U * 0.03}]; s.r = U * 0.085; commit(s);
+  const touch = window.matchMedia && matchMedia('(pointer:coarse)').matches;          // on touch screens keep the middle clear for 'tap to start'
   [[0.17, 0.3], [0.2, 0.42], [0.43, 0.8], [0.58, 0.52], [0.87, 0.46], [0.93, 0.3]].forEach(([a, b], i) => {
+    if (touch && i === 3) return;
     const d = newStroke('dot', 300 + i); d.pts = [{x: X(a), y: Y(b)}]; commit(d);
   });
   s = newStroke('flower', 404); s.pts = [{x: X(0.72), y: Y(0.3)}]; s.r = U * 0.12; s.ang = -1.2; commit(s);
