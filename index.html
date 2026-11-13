@@ -182,8 +182,9 @@ body{font-family:var(--font-ui)}
 #grid i{position:absolute;left:0;right:0;height:1px;background:rgba(47,47,52,.1)}
 #grid i.v{left:auto;right:auto;top:0;bottom:0;width:1px;height:auto}
 #rec .inner{fill:none}
+#rec .inner{transform-box:fill-box;transform-origin:center}
 #rec[aria-pressed="true"] .inner{fill:currentColor;animation:recpulse 1.6s ease-in-out infinite}
-@keyframes recpulse{50%{opacity:.3}}
+@keyframes recpulse{0%,100%{transform:scale(1.15)}50%{transform:scale(.7)}}
 .hd .x{display:none}
 .hd .mut{display:none}
 #snd[aria-pressed="false"] .mut{display:inline}
