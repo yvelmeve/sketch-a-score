@@ -787,12 +787,16 @@ function buildGraph(offline){                // wires the shared effects chain o
   droneFilt.connect(droneGain); send(droneGain, 0, 0.6, 0.1);
   updateDrone(offline);
 }
-function silenceAll(){                           // cut every sounding and scheduled note, bells, tails and echoes, then start a fresh effects chain
+function silenceAll(){                           // cut every sounding and scheduled note, but let the reverb tail ring out, then start a fresh effects chain
   pulses.length = 0;
   if (!AC || !master) return;
-  const oldMaster = master, oldComp = outNode, oldNodes = graphNodes, t = AC.currentTime;
-  try { oldMaster.gain.cancelScheduledValues(t); oldMaster.gain.setValueAtTime(oldMaster.gain.value, t); oldMaster.gain.linearRampToValueAtTime(0, t + 0.06); } catch (_) {}
-  setTimeout(() => { try { oldComp.disconnect(); } catch (_) {} oldNodes.forEach(o => { try { o.stop(); } catch (_) {} }); }, 150);
+  const old = {master, comp: outNode, dry, revIn, dlyIn, bellRev, bellDly, nodes: graphNodes}, t = AC.currentTime;
+  const to = (g, v, tc) => { try { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.setTargetAtTime(v, t, tc); } catch (_) {} };
+  to(old.dry, 0, 0.03);                            // the dry notes stop at once
+  [old.revIn, old.dlyIn, old.bellRev, old.bellDly].forEach(g => to(g, 0, 0.05));   // no new sound enters the reverb or echo; what is already in them rings out
+  to(old.master, 0, 0.55);                         // and the tail fades over a second or two instead of cutting
+  setTimeout(() => { old.nodes.forEach(o => { try { o.stop(); } catch (_) {} }); }, 400);
+  setTimeout(() => { try { old.comp.disconnect(); } catch (_) {} }, 4500);
   voices = 0;
   buildGraph(false);
 }
