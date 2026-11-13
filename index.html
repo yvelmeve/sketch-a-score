@@ -1109,13 +1109,15 @@ function applyScale(def){
     b._d = d; b.addEventListener('click', () => { initAudio(); resumeAudio(); applyScale(d); close(); cur.focus(); });
     list.appendChild(b);
   });
-  cur.addEventListener('click', () => {
+  const toggle = () => {
     list.hidden = !list.hidden; cur.setAttribute('aria-expanded', String(!list.hidden));
     if (!list.hidden){                                     // other scales only, lined up under the current word
       list.querySelectorAll('button').forEach(b => { b.hidden = b._d === scaleDef; });
       list.style.left = cur.offsetLeft + 'px';
     }
-  });
+  };
+  cur.addEventListener('click', toggle);
+  lbl.addEventListener('click', toggle); lbl.style.cursor = 'pointer';
   menu.append(cur, lbl, list);
   menu.addEventListener('pointerdown', e => e.stopPropagation());
   document.addEventListener('pointerdown', () => { if (!list.hidden) close(); });
