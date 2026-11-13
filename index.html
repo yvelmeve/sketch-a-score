@@ -1177,31 +1177,8 @@ function setTool(t){
   if (!hintGone) $('hint').textContent = hintFor();
 }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => { initAudio(); resumeAudio(); setTool(b.dataset.tool); }));
-const SAVE_KEY = 'sketch-a-score:v1'; let saveT = 0;
-function persist(now){                                  // keep the page between visits (strokes only, stored as fractions of the screen)
-  clearTimeout(saveT);
-  const write = () => {
-    try {
-      const U = Math.min(W, H);
-      localStorage.setItem(SAVE_KEY, JSON.stringify({v: 1, s: strokes.map(s => ({t: s.type, d: s.seed, r: +(s.r / U).toFixed(4), a: +s.ang.toFixed(3), p: s.pts.map(q => [+(q.x / W).toFixed(4), +(q.y / H).toFixed(4)])}))}));
-    } catch (_) {}
-  };
-  if (now === true) write(); else saveT = setTimeout(write, 500);
-}
-function restore(){
-  let raw; try { raw = localStorage.getItem(SAVE_KEY); } catch (_) { return false; }
-  if (!raw) return false;
-  try {
-    const d = JSON.parse(raw), U = Math.min(W, H);
-    if (!d || d.v !== 1 || !Array.isArray(d.s)) return false;
-    for (const o of d.s){
-      const s = newStroke(o.t, o.d); s.pts = o.p.map(q => ({x: q[0] * W, y: q[1] * H})); s.r = o.r * U; s.ang = o.a;
-      if (s.pts.length) commit(s);
-    }
-    return true;
-  } catch (e){ strokes = []; return false; }
-}
-addEventListener('pagehide', () => persist(true));
+const SAVE_KEY = 'sketch-a-score:v1';               // old autosave key, cleared on load: a reload always brings back the default drawing
+function persist(){}
 let redoStack = [];
 function syncUR(){ $('undo').disabled = !strokes.length; $('redo').disabled = !redoStack.length; persist(); }
 function undo(){ if (ptr || busy) return; const s = strokes.pop(); if (s) redoStack.push(s); circleVer++; updateDrone(); dirty = true; syncUR(); }
@@ -1761,7 +1738,8 @@ function loop(now){
 resize();
 lastPx = W * 0.2;
 makeGrain();
-if (!restore()) seedDrawing();
+try { localStorage.removeItem(SAVE_KEY); } catch (_) {}
+seedDrawing();
 addEventListener('resize', resize);
 if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
 requestAnimationFrame(loop);
